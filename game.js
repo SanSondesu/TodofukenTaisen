@@ -93,7 +93,7 @@ function growth(r){const ag=r.agriculture/100,ind=r.industry/100,svc=r.service/1
 async function aiTurn(){
  const nations=[...new Set(Object.values(state.regions).map(r=>r.owner).filter(owner=>owner!==state.player))];
  for(const owner of nations){
-  const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);
+  const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);const bonus=awardTerritoryBonus(owner);if(bonus)log(state.regions[owner].name+"国に領土ボーナス +"+bonus+"兵力（"+owned.length+"県を支配）。");
   const sources=owned.filter(a=>neighbors(a.id).some(n=>state.regions[n].owner!==owner));if(!sources.length)continue;
   const a=sources.sort((x,y)=>strength(y)-strength(x))[0];
   const borders=neighbors(a.id).map(id=>state.regions[id]).filter(r=>r.owner!==owner);

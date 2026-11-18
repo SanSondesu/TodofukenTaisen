@@ -36,13 +36,32 @@ const SPECIAL=[
 {a:46,b:47,label:"鹿児島・沖縄間の海上航路",enabled:false}
 ];
 const $=id=>document.getElementById(id),num=n=>Math.round(n).toLocaleString("ja-JP");
-const state={selected:14,player:null,started:false,turn:1,regions:{},logs:[],specialEnabled:false,busy:false,zoom:1};
+const state={selected:14,player:null,started:false,turn:1,regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0};
 PREFS.forEach((p,i)=>{const [name,region,pop,ag,ind,svc]=p,id=i+1;state.regions[id]={id,name,region,population:pop*10,agriculture:ag,industry:ind,service:svc,economy:Math.round(pop*1.5+ag*.35+ind*.55+svc*.65),troops:Math.round(90+pop*5+ind*2),owner:id,stability:70};});
 function neighbors(id,includeSpecial=false){const out=[...(LAND[id]||[])];if(includeSpecial&&state.specialEnabled)for(const e of SPECIAL)if(e.enabled){if(e.a===id)out.push(e.b);if(e.b===id)out.push(e.a);}return [...new Set(out)];}
 function log(s){state.logs.unshift(s);state.logs=state.logs.slice(0,35);$("log").innerHTML=state.logs.map(x=>"<p>"+x.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</p>").join("");}
 function strength(r){return r.troops+Math.sqrt(r.economy)*2+r.industry*.7+r.agriculture*.25;}
-function render(){const r=state.regions[state.selected];$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||r.owner!==state.player||!neighbors(r.id).some(n=>state.regions[n].owner!==state.player);$("end").disabled=state.busy;$("help").textContent=state.started?(r.owner===state.player?"自国です。陸上で県境を接する他国に進攻できます。":"他国の情報です。自国に隣接している場合のみ進攻できます。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
-function setZoom(value){state.zoom=Math.max(1,Math.min(2.8,Math.round(value*10)/10));$("map").style.setProperty("--map-zoom",state.zoom);$("zoom-label").textContent=Math.round(state.zoom*100)+"%";$("zoom-out").disabled=state.zoom<=1;$("zoom-in").disabled=state.zoom>=2.8;}
+function render(){const r=state.regions[state.selected];$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||r.owner!==state.player||!neighbors(r.id).some(n=>state.regions[n].owner!==state.player);$("end").disabled=state.busy;$("help").textContent=state.started?(r.owner===state.player?"自国です。陸上で県境を接する他国に進攻できます。":"他国の情報です。自国に隣接している場合のみ進攻できます。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
+function applyMapTransform(){
+ const map=$("map"),maxX=Math.max(0,(map.clientWidth*(state.zoom-1))/2),maxY=Math.max(0,(map.clientHeight*(state.zoom-1))/2);
+ state.panX=Math.max(-maxX,Math.min(maxX,state.panX));state.panY=Math.max(-maxY,Math.min(maxY,state.panY));
+ map.style.setProperty("--map-zoom",state.zoom);map.style.setProperty("--map-pan-x",state.panX+"px");map.style.setProperty("--map-pan-y",state.panY+"px");
+ map.classList.toggle("is-zoomed",state.zoom>1.001);
+}
+function setZoom(value){
+ const old=state.zoom;state.zoom=Math.max(1,Math.min(2.8,Math.round(value*10)/10));
+ if(state.zoom===1){state.panX=0;state.panY=0;}
+ else if(state.zoom>old){state.panX*=state.zoom/old;state.panY*=state.zoom/old;}
+ applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";$("zoom-out").disabled=state.zoom<=1;$("zoom-in").disabled=state.zoom>=2.8;
+}
+function territoryBonus(owner){const count=Object.values(state.regions).filter(r=>r.owner===owner).length;return Math.floor(count/5)*10;}
+function awardTerritoryBonus(owner){
+ const bonus=territoryBonus(owner);if(!bonus)return 0;
+ const owned=Object.values(state.regions).filter(r=>r.owner===owner).sort((a,b)=>a.id-b.id);
+ const each=Math.floor(bonus/owned.length),extra=bonus%owned.length;
+ owned.forEach((r,i)=>{r.troops+=each+(i<extra?1:0);});
+ return bonus;
+}
 function factionColor(owner){const hue=((owner*137.508)%360+360)%360;return "hsl("+hue+" 27% 76%)";}
 function select(id){if(state.regions[id]&&!state.busy){state.selected=id;render();}}
 async function animateMarch(fromId,toId,count){
@@ -87,9 +106,29 @@ async function aiTurn(){
   else{target.troops=Math.max(0,target.troops-Math.ceil(target.troops*.12));log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");}
  }
 }
-async function endTurn(){if(state.busy)return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");if(mine===47)log("全国統一を達成！");if(mine===0)log("自国の領土がなくなった。自国は滅亡した。");state.busy=false;render();}
+async function endTurn(){if(state.busy)return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");if(mine===47)log("全国統一を達成！");if(mine===0)log("自国の領土がなくなった。自国は滅亡した。");state.busy=false;render();}
 function save(){localStorage.setItem("todofukenTaisenSaveV2",JSON.stringify(state));log("進行状況を保存した。");}
 function load(){try{const raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;const s=JSON.parse(raw);if(!s.regions||Object.keys(s.regions).length!==47)throw Error("invalid save");Object.assign(state,s);return true;}catch(e){log("セーブデータを読み込めませんでした。");return false;}}
-$("zoom-in").onclick=()=>setZoom(state.zoom+.2);$("zoom-out").onclick=()=>setZoom(state.zoom-.2);$("zoom-reset").onclick=()=>setZoom(1);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
+$("zoom-in").onclick=()=>setZoom(state.zoom+.2);$("zoom-out").onclick=()=>setZoom(state.zoom-.2);$("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};
+const mapViewport=$("map");let drag=null,suppressMapClick=false;
+mapViewport.addEventListener("pointerdown",e=>{
+ if(state.zoom<=1.001||e.target.closest(".map-controls"))return;
+ drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:state.panX,startY:state.panY,moved:false};
+ mapViewport.setPointerCapture(e.pointerId);mapViewport.classList.add("is-dragging");
+});
+mapViewport.addEventListener("pointermove",e=>{
+ if(!drag||drag.id!==e.pointerId)return;
+ const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+ if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;
+ if(drag.moved){state.panX=drag.startX+dx;state.panY=drag.startY+dy;applyMapTransform();}
+});
+function finishMapDrag(e){
+ if(!drag||drag.id!==e.pointerId)return;
+ suppressMapClick=drag.moved;drag=null;mapViewport.classList.remove("is-dragging");
+ if(suppressMapClick)setTimeout(()=>{suppressMapClick=false;},0);
+}
+mapViewport.addEventListener("pointerup",finishMapDrag);mapViewport.addEventListener("pointercancel",finishMapDrag);
+mapViewport.addEventListener("click",e=>{if(suppressMapClick){e.stopPropagation();e.preventDefault();suppressMapClick=false;}},true);
+window.addEventListener("resize",applyMapTransform);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
 if(load()){log("保存データを読み込んだ。");if(state.started)$("intro").classList.add("hidden");}
 render();loadMap();

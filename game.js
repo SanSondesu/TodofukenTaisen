@@ -71,7 +71,7 @@ async function aiTurn(){
   const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);
   const sources=owned.filter(a=>neighbors(a.id).some(n=>state.regions[n].owner!==owner));if(!sources.length)continue;
   const a=sources.sort((x,y)=>strength(y)-strength(x))[0];
-  const borders=[...new Set(sources.flatMap(x=>neighbors(x.id)))].map(id=>state.regions[id]).filter(r=>r.owner!==owner);
+  const borders=neighbors(a.id).map(id=>state.regions[id]).filter(r=>r.owner!==owner);
   if(!borders.length||a.troops<100)continue;
   const target=borders.sort((x,y)=>strength(x)-strength(y))[0],ratio=strength(a)/(strength(target)+1);
   if(ratio<=1.12||Math.random()>=Math.min(.42,.12+(ratio-1.2)*.18))continue;

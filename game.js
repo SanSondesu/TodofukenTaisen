@@ -1,6 +1,6 @@
 "use strict";
 const PREFS=[
-["北海道","北海道",520,72,48,72],["青森県","東北",12,62,25,30],["岩手県","東北",12,78,25,28],["宮城県","東北",22,55,42,48],["秋田県","東北",9,82,22,25],["山形県","東北",10,78,28,30],["福島県","東北",18,72,38,40],
+["北海道","北海道",52,72,48,72],["青森県","東北",12,62,25,30],["岩手県","東北",12,78,25,28],["宮城県","東北",22,55,42,48],["秋田県","東北",9,82,22,25],["山形県","東北",10,78,28,30],["福島県","東北",18,72,38,40],
 ["茨城県","関東",28,68,60,55],["栃木県","関東",19,72,55,48],["群馬県","関東",19,65,58,50],["埼玉県","関東",73,35,70,78],["千葉県","関東",63,62,65,72],["東京都","関東",140,8,68,100],["神奈川県","関東",92,12,88,95],
 ["新潟県","中部",21,78,42,40],["富山県","中部",10,48,68,45],["石川県","中部",11,42,62,48],["福井県","中部",8,52,55,38],["山梨県","中部",8,60,38,35],["長野県","中部",20,72,50,45],["岐阜県","中部",19,58,62,45],["静岡県","中部",36,42,82,65],["愛知県","中部",75,22,100,92],
 ["三重県","近畿",17,58,65,48],["滋賀県","近畿",14,48,60,48],["京都府","近畿",25,24,65,82],["大阪府","近畿",88,8,82,100],["兵庫県","近畿",53,35,75,78],["奈良県","近畿",13,52,38,42],["和歌山県","近畿",9,62,35,35],
@@ -73,10 +73,6 @@ async function animateMarch(fromId,toId,count){
  document.body.append(token);token.getBoundingClientRect();requestAnimationFrame(()=>{token.style.transform="translate(calc(-50% + "+(ex-sx)+"px),calc(-50% + "+(ey-sy)+"px))";});await new Promise(r=>setTimeout(r,660));token.remove();
 }
 async function loadMap(){try{const res=await fetch("https://raw.githubusercontent.com/geolonia/japanese-prefectures/master/map-full.svg");if(!res.ok)throw Error("map fetch failed");const doc=new DOMParser().parseFromString(await res.text(),"image/svg+xml"),svg=doc.querySelector("svg");if(!svg||doc.querySelector("parsererror"))throw Error("invalid svg");svg.removeAttribute("width");svg.removeAttribute("height");svg.setAttribute("preserveAspectRatio","xMidYMid meet");
- const defs=doc.createElementNS("http://www.w3.org/2000/svg","defs"),pattern=doc.createElementNS("http://www.w3.org/2000/svg","pattern");
- pattern.setAttribute("id","conqueredHatch");pattern.setAttribute("patternUnits","userSpaceOnUse");pattern.setAttribute("width","9");pattern.setAttribute("height","9");pattern.setAttribute("patternTransform","rotate(35)");
- const base=doc.createElementNS("http://www.w3.org/2000/svg","rect");base.setAttribute("width","9");base.setAttribute("height","9");base.setAttribute("fill","var(--faction-fill,#d8c9a9)");
- const stripe=doc.createElementNS("http://www.w3.org/2000/svg","rect");stripe.setAttribute("width","3");stripe.setAttribute("height","9");stripe.setAttribute("fill","#594633");stripe.setAttribute("opacity",".42");pattern.append(base,stripe);defs.append(pattern);svg.insertBefore(defs,svg.firstChild);
  const map=$("map"),controls=map.querySelector(".map-controls");map.querySelectorAll("svg").forEach(old=>old.remove());map.insertBefore(document.importNode(svg,true),controls?controls.nextSibling:null);setZoom(state.zoom);const nodes=map.querySelectorAll(".prefecture");nodes.forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));if(!state.regions[id])return;el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label",state.regions[id].name);el.addEventListener("click",()=>select(id));el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id);}});});if(nodes.length!==47)log("注意：地図SVGから認識できた県グループは"+nodes.length+"件です（期待値47）。地図コードの再検証が必要です。");render();}catch(e){$("map").innerHTML='<div class="fallback">地図を読み込めませんでした。通信環境を確認して再読み込みしてください。</div>';}}
 function begin(){state.started=true;state.player=state.selected;state.regions[state.player].owner=state.player;log(state.regions[state.player].name+"を選び、天下統一への歩みを始めた。");render();}
 async function attack(){

@@ -71,7 +71,7 @@ function setZoom(value){
  const old=state.zoom;state.zoom=Math.max(1,Math.min(2.8,Math.round(value*10)/10));
  if(state.zoom===1){state.panX=0;state.panY=0;}
  else if(state.zoom>old){state.panX*=state.zoom/old;state.panY*=state.zoom/old;}
- applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";$("zoom-out").disabled=state.zoom<=1;$("zoom-in").disabled=state.zoom>=2.8;
+ applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";
 }
 function territoryBonus(owner){const count=Object.values(state.regions).filter(r=>r.owner===owner).length;return Math.floor(count/5)*10;}
 function awardTerritoryBonus(owner){
@@ -147,7 +147,7 @@ mapViewport.addEventListener("click",e=>{if(suppressMapClick){e.stopPropagation(
 let pinch=null;
 function touchDistance(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.hypot(dx,dy);}
 mapViewport.addEventListener("touchstart",e=>{if(e.touches.length===2){e.preventDefault();const rect=mapViewport.getBoundingClientRect(),midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2;pinch={distance:touchDistance(e.touches),zoom:state.zoom,panX:state.panX,panY:state.panY,x:midX-rect.left-rect.width/2,y:midY-rect.top-rect.height/2};}},{passive:false});
-mapViewport.addEventListener("touchmove",e=>{if(!pinch||e.touches.length!==2)return;e.preventDefault();const rect=mapViewport.getBoundingClientRect(),ratio=touchDistance(e.touches)/Math.max(1,pinch.distance),next=Math.max(1,Math.min(2.8,pinch.zoom*ratio)),scale=next/pinch.zoom;const midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2,x=midX-rect.left-rect.width/2,y=midY-rect.top-rect.height/2;state.zoom=next;state.panX=x-(x-pinch.panX)*scale;state.panY=y-(y-pinch.panY)*scale;applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";},{passive:false});
+mapViewport.addEventListener("touchmove",e=>{if(!pinch||e.touches.length!==2)return;e.preventDefault();const rect=mapViewport.getBoundingClientRect(),ratio=touchDistance(e.touches)/Math.max(1,pinch.distance),next=Math.max(1,Math.min(2.8,pinch.zoom*ratio)),scale=next/pinch.zoom;const midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2,x=midX-rect.left-rect.width/2,y=midY-rect.top-rect.height/2;state.zoom=next;state.panX=x-(pinch.x-pinch.panX)*scale;state.panY=y-(pinch.y-pinch.panY)*scale;applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";},{passive:false});
 mapViewport.addEventListener("touchend",e=>{if(e.touches.length<2)pinch=null;},{passive:true});mapViewport.addEventListener("touchcancel",()=>{pinch=null;},{passive:true});
 window.addEventListener("resize",applyMapTransform);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
 if(load()){log("保存データを読み込んだ。");if(state.started)$("intro").classList.add("hidden");}

@@ -20,29 +20,29 @@ const LAND={
 };
 // 海峡・橋梁・航路による接続。陸上で県境を共有する関係とは別管理。
 const SPECIAL=[
-{a:1,b:2,label:"津軽海峡航路",enabled:false},
-{a:12,b:14,label:"東京湾を横断する航路",enabled:false},
-{a:28,b:36,label:"明石海峡・大鳴門橋",enabled:false},
-{a:28,b:37,label:"瀬戸内海航路",enabled:false},
-{a:30,b:36,label:"紀伊水道航路",enabled:false},
-{a:33,b:37,label:"瀬戸大橋",enabled:false},
-{a:34,b:38,label:"しまなみ海道",enabled:false},
-{a:35,b:38,label:"瀬戸内海航路",enabled:false},
-{a:35,b:40,label:"関門海峡（橋・トンネル）",enabled:true},
-{a:35,b:44,label:"周防灘航路",enabled:false},
-{a:38,b:44,label:"豊予海峡航路",enabled:false},
-{a:40,b:42,label:"有明海方面の海上接続",enabled:false},
-{a:42,b:43,label:"有明海航路",enabled:false},
-{a:46,b:47,label:"鹿児島・沖縄間の海上航路",enabled:true}
+{a:1,b:2,label:"青函トンネル（鉄道）・青函航路",type:"bridge",enabled:true},
+{a:12,b:14,label:"東京湾アクアライン・東京湾フェリー",type:"bridge",enabled:true},
+{a:23,b:24,label:"伊勢湾フェリー（伊良湖～鳥羽）",type:"ferry",enabled:true},
+{a:28,b:36,label:"明石海峡大橋・大鳴門橋",type:"bridge",enabled:true},
+{a:28,b:37,label:"神戸～高松フェリー",type:"ferry",enabled:true},
+{a:30,b:36,label:"南海フェリー（和歌山～徳島）",type:"ferry",enabled:true},
+{a:33,b:37,label:"瀬戸大橋",type:"bridge",enabled:true},
+{a:34,b:38,label:"しまなみ海道",type:"bridge",enabled:true},
+{a:35,b:38,label:"防予フェリー（柳井～松山）",type:"ferry",enabled:true},
+{a:35,b:40,label:"関門橋・関門トンネル",type:"bridge",enabled:true},
+{a:35,b:44,label:"周防灘フェリー（徳山～竹田津）",type:"ferry",enabled:true},
+{a:38,b:44,label:"四国～九州フェリー（八幡浜～臼杵・別府方面）",type:"ferry",enabled:true},
+{a:42,b:43,label:"島原～熊本フェリー",type:"ferry",enabled:true}
 ];
 const $=id=>document.getElementById(id),num=n=>Math.round(n).toLocaleString("ja-JP");
-const state={selected:14,player:null,started:false,turn:1,regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0};
+const state={selected:14,player:null,started:false,turn:1,regions:{},logs:[],attackTarget:null,specialEnabled:false,busy:false,zoom:1,panX:0,panY:0};
 PREFS.forEach((p,i)=>{const [name,region,pop,ag,ind,svc]=p,id=i+1;state.regions[id]={id,name,region,population:pop*10,agriculture:ag,industry:ind,service:svc,economy:Math.round(pop*1.5+ag*.35+ind*.55+svc*.65),troops:Math.round(90+pop*5+ind*2),owner:id,stability:70};});
 function neighbors(id,includeSpecial=true){const out=[...(LAND[id]||[])];if(includeSpecial)for(const e of SPECIAL)if(e.enabled){if(e.a===id)out.push(e.b);if(e.b===id)out.push(e.a);}return [...new Set(out)];}
-function attackPlan(){if(!state.started)return null;const selected=state.regions[state.selected];if(!selected)return null;if(selected.owner!==state.player){const sources=neighbors(selected.id).map(id=>state.regions[id]).filter(r=>r&&r.owner===state.player);if(!sources.length)return null;sources.sort((a,b)=>strength(b)-strength(a));return {from:sources[0],target:selected};}const targets=neighbors(selected.id).map(id=>state.regions[id]).filter(r=>r&&r.owner!==state.player);if(!targets.length)return null;targets.sort((a,b)=>strength(a)-strength(b));return {from:selected,target:targets[0]};}
+function attackPlan(){if(!state.started)return null;const target=state.regions[state.attackTarget];if(!target||target.owner===state.player)return null;const sources=Object.values(state.regions).filter(r=>r.owner===state.player&&neighbors(r.id).includes(target.id));if(!sources.length)return null;const selected=state.regions[state.selected];sources.sort((a,b)=>{if(selected&&selected.owner===state.player){if(a.id===selected.id)return -1;if(b.id===selected.id)return 1;}return strength(b)-strength(a);});return {from:sources[0],target};}
+function populateAttackTargets(){const select=$("attack-target");if(!state.started){select.innerHTML="";return;}const available=new Map();for(const source of Object.values(state.regions).filter(r=>r.owner===state.player)){for(const id of neighbors(source.id)){const target=state.regions[id];if(target&&target.owner!==state.player&&!available.has(id))available.set(id,target);}}const old=+(state.attackTarget||select.value);const selected=state.regions[state.selected];const next=available.has(old)?old:(selected&&selected.owner!==state.player&&available.has(selected.id)?selected.id:(available.keys().next().value||null));state.attackTarget=next;select.innerHTML=[...available.values()].sort((a,b)=>a.id-b.id).map(r=>`<option value="${r.id}">${r.name}</option>`).join("");if(next!==null)select.value=String(next);select.disabled=available.size===0;}
 function log(s){state.logs.unshift(s);state.logs=state.logs.slice(0,35);$("log").innerHTML=state.logs.map(x=>"<p>"+x.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</p>").join("");}
 function strength(r){return r.troops+Math.sqrt(r.economy)*2+r.industry*.7+r.agriculture*.25;}
-function render(){const r=state.regions[state.selected],plan=attackPlan();$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||!plan;$("end").disabled=state.busy;populateTransferControls();$("help").textContent=state.started?(plan?(r.owner===state.player?"この県を出撃元として、隣接する敵国へ進攻できます。":"この敵国へ、隣接する自国領から進攻できます。"):(r.owner===state.player?"この県に隣接する敵国はありません。別の自国領を選んでください。":"この県に隣接する自国領がありません。") ):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
+function render(){populateAttackTargets();const r=state.regions[state.selected],plan=attackPlan();$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||!plan;$("end").disabled=state.busy;populateTransferControls();$("help").textContent=state.started?(plan?(plan.from.name+"から"+plan.target.name+"へ進攻できます。攻撃先一覧から目標を選べます。"):"攻撃可能な敵県がありません。自国領の隣接状況を確認してください。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
 function populateTransferControls(){
  const panel=$("transfer-panel"),fromSelect=$("transfer-from"),toSelect=$("transfer-to");
  if(!state.started){panel.classList.add("hidden");return;}
@@ -124,7 +124,7 @@ async function aiTurn(){
 async function endTurn(){if(state.busy)return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");if(mine===47)log("全国統一を達成！");if(mine===0)log("自国の領土がなくなった。自国は滅亡した。");state.busy=false;render();}
 function save(){localStorage.setItem("todofukenTaisenSaveV2",JSON.stringify(state));log("進行状況を保存した。");}
 function load(){try{const raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;const s=JSON.parse(raw);if(!s.regions||Object.keys(s.regions).length!==47)throw Error("invalid save");Object.assign(state,s);return true;}catch(e){log("セーブデータを読み込めませんでした。");return false;}}
-$("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};$("transfer-button").onclick=transferTroops;
+$("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};$("transfer-button").onclick=transferTroops;$("attack-target").addEventListener("change",e=>{state.attackTarget=+e.target.value||null;render();});
 const mapViewport=$("map");let drag=null,suppressMapClick=false;
 mapViewport.addEventListener("pointerdown",e=>{
  if(e.pointerType==="touch"||state.zoom<=1.001||e.target.closest(".map-controls"))return;

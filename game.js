@@ -41,7 +41,26 @@ PREFS.forEach((p,i)=>{const [name,region,pop,ag,ind,svc]=p,id=i+1;state.regions[
 function neighbors(id,includeSpecial=false){const out=[...(LAND[id]||[])];if(includeSpecial&&state.specialEnabled)for(const e of SPECIAL)if(e.enabled){if(e.a===id)out.push(e.b);if(e.b===id)out.push(e.a);}return [...new Set(out)];}
 function log(s){state.logs.unshift(s);state.logs=state.logs.slice(0,35);$("log").innerHTML=state.logs.map(x=>"<p>"+x.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</p>").join("");}
 function strength(r){return r.troops+Math.sqrt(r.economy)*2+r.industry*.7+r.agriculture*.25;}
-function render(){const r=state.regions[state.selected];$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||r.owner!==state.player||!neighbors(r.id).some(n=>state.regions[n].owner!==state.player);$("end").disabled=state.busy;$("help").textContent=state.started?(r.owner===state.player?"自国です。陸上で県境を接する他国に進攻できます。":"他国の情報です。自国に隣接している場合のみ進攻できます。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
+function render(){const r=state.regions[state.selected];$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").disabled=state.busy||!state.started||r.owner!==state.player||!neighbors(r.id).some(n=>state.regions[n].owner!==state.player);$("end").disabled=state.busy;populateTransferControls();$("help").textContent=state.started?(r.owner===state.player?"自国です。陸上で県境を接する他国に進攻できます。":"他国の情報です。自国に隣接している場合のみ進攻できます。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"自国領は緑、選択中の県は赤茶色で表示。":"地図上の都道府県を選択してください。";}
+function populateTransferControls(){
+ const panel=$("transfer-panel"),fromSelect=$("transfer-from"),toSelect=$("transfer-to");
+ if(!state.started){panel.classList.add("hidden");return;}
+ const owned=Object.values(state.regions).filter(r=>r.owner===state.player).sort((a,b)=>a.id-b.id);
+ panel.classList.toggle("hidden",owned.length<2);
+ if(owned.length<2)return;
+ const oldFrom=+fromSelect.value,oldTo=+toSelect.value;
+ const options=owned.map(r=>`<option value="${r.id}">${r.name}（兵力 ${num(r.troops)}）</option>`).join("");
+ fromSelect.innerHTML=options;toSelect.innerHTML=options;
+ fromSelect.value=owned.some(r=>r.id===oldFrom)?String(oldFrom):String(owned[0].id);
+ toSelect.value=owned.some(r=>r.id===oldTo)&&oldTo!==+fromSelect.value?String(oldTo):String((owned.find(r=>r.id!==+fromSelect.value)||owned[1]).id);
+}
+async function transferTroops(){
+ if(state.busy||!state.started)return;
+ const from=state.regions[+$("transfer-from").value],to=state.regions[+$("transfer-to").value],amount=Math.floor(Number($("transfer-amount").value));
+ if(!from||!to||from.id===to.id||from.owner!==state.player||to.owner!==state.player){log("移送元と移送先には、異なる自国領を指定してください。");return;}
+ if(!Number.isFinite(amount)||amount<1||amount>from.troops-1){log("移送兵力は1以上、送り元に1兵力を残せる範囲で指定してください。");return;}
+ state.busy=true;render();await animateMarch(from.id,to.id,amount);from.troops-=amount;to.troops+=amount;state.selected=to.id;log(from.name+"から"+to.name+"へ"+num(amount)+"兵力を移送した。");state.busy=false;render();
+}
 function applyMapTransform(){
  const map=$("map"),maxX=Math.max(0,(map.clientWidth*(state.zoom-1))/2),maxY=Math.max(0,(map.clientHeight*(state.zoom-1))/2);
  state.panX=Math.max(-maxX,Math.min(maxX,state.panX));state.panY=Math.max(-maxY,Math.min(maxY,state.panY));
@@ -105,10 +124,10 @@ async function aiTurn(){
 async function endTurn(){if(state.busy)return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");if(mine===47)log("全国統一を達成！");if(mine===0)log("自国の領土がなくなった。自国は滅亡した。");state.busy=false;render();}
 function save(){localStorage.setItem("todofukenTaisenSaveV2",JSON.stringify(state));log("進行状況を保存した。");}
 function load(){try{const raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;const s=JSON.parse(raw);if(!s.regions||Object.keys(s.regions).length!==47)throw Error("invalid save");Object.assign(state,s);return true;}catch(e){log("セーブデータを読み込めませんでした。");return false;}}
-$("zoom-in").onclick=()=>setZoom(state.zoom+.2);$("zoom-out").onclick=()=>setZoom(state.zoom-.2);$("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};
+$("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};$("transfer-button").onclick=transferTroops;
 const mapViewport=$("map");let drag=null,suppressMapClick=false;
 mapViewport.addEventListener("pointerdown",e=>{
- if(state.zoom<=1.001||e.target.closest(".map-controls"))return;
+ if(e.pointerType==="touch"||state.zoom<=1.001||e.target.closest(".map-controls"))return;
  drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:state.panX,startY:state.panY,moved:false};
  mapViewport.setPointerCapture(e.pointerId);mapViewport.classList.add("is-dragging");
 });
@@ -125,6 +144,11 @@ function finishMapDrag(e){
 }
 mapViewport.addEventListener("pointerup",finishMapDrag);mapViewport.addEventListener("pointercancel",finishMapDrag);
 mapViewport.addEventListener("click",e=>{if(suppressMapClick){e.stopPropagation();e.preventDefault();suppressMapClick=false;}},true);
+let pinch=null;
+function touchDistance(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.hypot(dx,dy);}
+mapViewport.addEventListener("touchstart",e=>{if(e.touches.length===2){e.preventDefault();const rect=mapViewport.getBoundingClientRect(),midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2;pinch={distance:touchDistance(e.touches),zoom:state.zoom,panX:state.panX,panY:state.panY,x:midX-rect.left-rect.width/2,y:midY-rect.top-rect.height/2};}},{passive:false});
+mapViewport.addEventListener("touchmove",e=>{if(!pinch||e.touches.length!==2)return;e.preventDefault();const rect=mapViewport.getBoundingClientRect(),ratio=touchDistance(e.touches)/Math.max(1,pinch.distance),next=Math.max(1,Math.min(2.8,pinch.zoom*ratio)),scale=next/pinch.zoom;const midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2,x=midX-rect.left-rect.width/2,y=midY-rect.top-rect.height/2;state.zoom=next;state.panX=x-(x-pinch.panX)*scale;state.panY=y-(y-pinch.panY)*scale;applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";},{passive:false});
+mapViewport.addEventListener("touchend",e=>{if(e.touches.length<2)pinch=null;},{passive:true});mapViewport.addEventListener("touchcancel",()=>{pinch=null;},{passive:true});
 window.addEventListener("resize",applyMapTransform);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
 if(load()){log("保存データを読み込んだ。");if(state.started)$("intro").classList.add("hidden");}
 render();loadMap();

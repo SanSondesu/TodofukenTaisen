@@ -1,63 +1,34 @@
 "use strict";
-const PREFS=[
-["北海道","北海道",52,72,48,72],["青森県","東北",12,62,25,30],["岩手県","東北",12,78,25,28],["宮城県","東北",22,55,42,48],["秋田県","東北",9,82,22,25],["山形県","東北",10,78,28,30],["福島県","東北",18,72,38,40],
-["茨城県","関東",28,68,60,55],["栃木県","関東",19,72,55,48],["群馬県","関東",19,65,58,50],["埼玉県","関東",73,35,70,78],["千葉県","関東",63,62,65,72],["東京都","関東",140,8,68,100],["神奈川県","関東",92,12,88,95],
-["新潟県","中部",21,78,42,40],["富山県","中部",10,48,68,45],["石川県","中部",11,42,62,48],["福井県","中部",8,52,55,38],["山梨県","中部",8,60,38,35],["長野県","中部",20,72,50,45],["岐阜県","中部",19,58,62,45],["静岡県","中部",36,42,82,65],["愛知県","中部",75,22,100,92],
-["三重県","近畿",17,58,65,48],["滋賀県","近畿",14,48,60,48],["京都府","近畿",25,24,65,82],["大阪府","近畿",88,8,82,100],["兵庫県","近畿",53,35,75,78],["奈良県","近畿",13,52,38,42],["和歌山県","近畿",9,62,35,35],
-["鳥取県","中国",5,58,28,28],["島根県","中国",7,65,25,28],["岡山県","中国",19,42,58,52],["広島県","中国",27,28,68,65],["山口県","中国",13,38,55,50],
-["徳島県","四国",7,52,38,38],["香川県","四国",9,42,42,45],["愛媛県","四国",13,55,48,45],["高知県","四国",7,72,32,32],
-["福岡県","九州",51,28,78,90],["佐賀県","九州",8,52,42,38],["長崎県","九州",13,55,45,45],["熊本県","九州",17,62,52,48],["大分県","九州",11,48,48,42],["宮崎県","九州",10,72,42,38],["鹿児島県","九州",15,68,48,48],["沖縄県","沖縄",14,38,35,58]
-];
-// 陸上で県境を共有する組だけを登録。海峡・橋・航路は別ルール。
-const LAND={
-1:[],2:[3,5],3:[2,4,5],4:[3,5,6,7],5:[2,3,4,6],6:[4,5,7,15],7:[4,6,8,9,10,15],
-8:[7,9,11,12],9:[7,8,10,11],10:[7,9,11,15,20],11:[8,9,10,12,13,19,20],12:[8,11,13],13:[11,12,14,19],14:[13,19,22],
-15:[6,7,10,16,20],16:[15,17,20,21],17:[16,18,21],18:[17,21,25,26],19:[11,13,14,20,22],20:[10,11,15,16,19,21,22,23],21:[16,17,18,20,23,24,25],22:[14,19,20,23],23:[20,21,22,24],
-24:[21,23,25,26,29,30],25:[18,21,24,26],26:[18,24,25,27,28,29],27:[26,28,29,30],28:[26,27,31,33],29:[24,26,27,30],30:[24,27,29],
-31:[28,32,33,34],32:[31,34,35],33:[28,31,34],34:[31,32,33,35],35:[32,34],
-36:[37,39],37:[36,38],38:[37,39],39:[36,38],
-40:[41,43,44],41:[40,42],42:[41],43:[40,44,45,46],44:[40,43,45],45:[43,44,46],46:[43,45],47:[]
-};
-// 海峡・橋梁・航路による接続。陸上で県境を共有する関係とは別管理。
-const SPECIAL=[
-{a:1,b:2,label:"青函トンネル（鉄道）・青函航路",type:"bridge",enabled:true},
-{a:12,b:14,label:"東京湾アクアライン・東京湾フェリー",type:"bridge",enabled:true},
-{a:23,b:24,label:"伊勢湾フェリー（伊良湖～鳥羽）",type:"ferry",enabled:true},
-{a:28,b:36,label:"明石海峡大橋・大鳴門橋",type:"bridge",enabled:true},
-{a:28,b:37,label:"神戸～高松フェリー",type:"ferry",enabled:true},
-{a:30,b:36,label:"南海フェリー（和歌山～徳島）",type:"ferry",enabled:true},
-{a:33,b:37,label:"瀬戸大橋",type:"bridge",enabled:true},
-{a:34,b:38,label:"しまなみ海道",type:"bridge",enabled:true},
-{a:35,b:38,label:"防予フェリー（柳井～松山）",type:"ferry",enabled:true},
-{a:35,b:40,label:"関門橋・関門トンネル",type:"bridge",enabled:true},
-{a:35,b:44,label:"周防灘フェリー（徳山～竹田津）",type:"ferry",enabled:true},
-{a:38,b:44,label:"四国～九州フェリー（八幡浜～臼杵・別府方面）",type:"ferry",enabled:true},
-{a:42,b:43,label:"島原～熊本フェリー",type:"ferry",enabled:true}
-];
 const $=id=>document.getElementById(id),num=n=>Math.round(n).toLocaleString("ja-JP");
-const state={selected:14,player:null,started:false,turn:1,regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0};
+const SAVE_KEY="todofukenTaisenSaveV3";
+const state={selected:14,player:null,started:false,status:"setup",turn:1,regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0};
 PREFS.forEach((p,i)=>{const [name,region,pop,ag,ind,svc]=p,id=i+1;state.regions[id]={id,name,region,population:pop*10,agriculture:ag,industry:ind,service:svc,economy:Math.round(pop*1.5+ag*.35+ind*.55+svc*.65),troops:Math.round(90+pop*5+ind*2),owner:id,stability:70};});
 function neighbors(id,includeSpecial=true){const out=[...(LAND[id]||[])];if(includeSpecial)for(const e of SPECIAL)if(e.enabled){if(e.a===id)out.push(e.b);if(e.b===id)out.push(e.a);}return [...new Set(out)];}
-function attackPlan(){if(!state.started)return null;const target=state.regions[state.selected];if(!target||target.owner===state.player)return null;const sources=Object.values(state.regions).filter(r=>r.owner===state.player&&neighbors(r.id).includes(target.id));if(!sources.length)return null;sources.sort((a,b)=>strength(b)-strength(a));return {from:sources[0],target};}
+function battleChance(from,target){const atk=strength(from),def=strength(target);return Math.max(.18,Math.min(.82,.5+(atk-def)/(atk+def)*.85));}
+function attackPlan(){if(!state.started||state.status!=="active")return null;const target=state.regions[state.selected];if(!target||target.owner===state.player)return null;const sources=Object.values(state.regions).filter(r=>r.owner===state.player&&neighbors(r.id).includes(target.id)&&r.troops>1);if(!sources.length)return null;sources.sort((a,b)=>strength(b)-strength(a));const from=sources[0],cost=Math.max(1,Math.ceil(from.troops*.18));return {from,target,cost,chance:battleChance(from,target)};}
+function reachableOwned(fromId){const seen=new Set([fromId]),queue=[fromId];while(queue.length){const id=queue.shift();for(const next of neighbors(id)){const r=state.regions[next];if(r&&r.owner===state.player&&!seen.has(next)){seen.add(next);queue.push(next);}}}return [...seen].map(id=>state.regions[id]).filter(Boolean).sort((a,b)=>a.id-b.id);}
+function validateWorld(){const ids=Object.keys(state.regions).map(Number).sort((a,b)=>a-b);if(ids.length!==47||ids.some((id,i)=>id!==i+1))throw Error("47 prefectures missing");for(const [id,list] of Object.entries(LAND)){for(const n of list){if(!LAND[n]||!LAND[n].includes(+id))throw Error("land adjacency mismatch "+id+"-"+n);}}for(const e of SPECIAL){if(!state.regions[e.a]||!state.regions[e.b]||e.a===e.b)throw Error("invalid special route");}return true;}
 function log(s){state.logs.unshift(s);state.logs=state.logs.slice(0,35);$("log").innerHTML=state.logs.map(x=>"<p>"+x.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</p>").join("");}
 function strength(r){return r.troops+Math.sqrt(r.economy)*2+r.industry*.7+r.agriculture*.25;}
-function render(){const r=state.regions[state.selected],plan=attackPlan();$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").classList.toggle("hidden",!plan);$("attack").disabled=state.busy||!plan;$("end").disabled=state.busy;populateTransferControls();$("help").textContent=state.started?(plan?(plan.target.name+"へ攻撃できます。攻撃ボタンを押してください。"):"攻撃したい敵の都道府県を地図からタップしてください。隣接する敵県なら攻撃ボタンが表示されます。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected&&!state.started);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"各国の領土は勢力ごとの色で表示。征服地は同じ色を少し暗く表示。":"地図上の都道府県を選択してください。";}
+function render(){const r=state.regions[state.selected],plan=attackPlan();$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").classList.toggle("hidden",!plan);$("attack").disabled=state.busy||!plan;$("end").disabled=state.busy;populateTransferControls();$("help").textContent=state.status==="won"?"全国統一を達成しました。おめでとうございます。":state.status==="lost"?"自国は滅亡しました。最初からで新しい戦いを始められます。":state.started?(plan?(plan.from.name+"から"+plan.target.name+"へ進攻します。成功率の目安："+Math.round(plan.chance*100)+"%。派遣："+num(plan.cost)+"兵力。"):"攻撃したい敵の都道府県を地図から選択してください。攻撃可能なら攻撃元・成功率・派遣兵力を表示します。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"各国の領土は勢力ごとの色で表示。征服地は同じ色を少し暗く表示。":"地図上の都道府県を選択してください。";}
 function populateTransferControls(){
  const panel=$("transfer-panel"),fromSelect=$("transfer-from"),toSelect=$("transfer-to");
- if(!state.started){panel.classList.add("hidden");return;}
+ if(!state.started||state.status!=="active"){panel.classList.add("hidden");return;}
  const owned=Object.values(state.regions).filter(r=>r.owner===state.player).sort((a,b)=>a.id-b.id);
- panel.classList.toggle("hidden",owned.length<2);
- if(owned.length<2)return;
+ panel.classList.toggle("hidden",owned.length<2);if(owned.length<2)return;
  const oldFrom=+fromSelect.value,oldTo=+toSelect.value;
- const options=owned.map(r=>`<option value="${r.id}">${r.name}（兵力 ${num(r.troops)}）</option>`).join("");
- fromSelect.innerHTML=options;toSelect.innerHTML=options;
+ fromSelect.innerHTML=owned.map(r=>'<option value="'+r.id+'">'+r.name+'（兵力 '+num(r.troops)+'）</option>').join("");
  fromSelect.value=owned.some(r=>r.id===oldFrom)?String(oldFrom):String(owned[0].id);
- toSelect.value=owned.some(r=>r.id===oldTo)&&oldTo!==+fromSelect.value?String(oldTo):String((owned.find(r=>r.id!==+fromSelect.value)||owned[1]).id);
+ const reachable=reachableOwned(+fromSelect.value);
+ toSelect.innerHTML=reachable.filter(r=>r.id!==+fromSelect.value).map(r=>'<option value="'+r.id+'">'+r.name+'（兵力 '+num(r.troops)+'）</option>').join("");
+ toSelect.disabled=reachable.length<2;
+ if(reachable.some(r=>r.id===oldTo&&r.id!==+fromSelect.value))toSelect.value=String(oldTo);
 }
 async function transferTroops(){
  if(state.busy||!state.started)return;
  const from=state.regions[+$("transfer-from").value],to=state.regions[+$("transfer-to").value],amount=Math.floor(Number($("transfer-amount").value));
  if(!from||!to||from.id===to.id||from.owner!==state.player||to.owner!==state.player){log("移送元と移送先には、異なる自国領を指定してください。");return;}
+ if(!reachableOwned(from.id).some(r=>r.id===to.id)){log("移送先へは自国領をつないだ陸路・橋・航路がありません。");return;}
  if(!Number.isFinite(amount)||amount<1||amount>from.troops-1){log("移送兵力は1以上、送り元に1兵力を残せる範囲で指定してください。");return;}
  state.busy=true;render();await animateMarch(from.id,to.id,amount);from.troops-=amount;to.troops+=amount;state.selected=to.id;log(from.name+"から"+to.name+"へ"+num(amount)+"兵力を移送した。");state.busy=false;render();
 }
@@ -82,7 +53,8 @@ function awardTerritoryBonus(owner){
  return bonus;
 }
 function factionColor(owner){const hue=((owner*137.508)%360+360)%360;return "hsl("+hue+" 27% 76%)";}
-function select(id){if(state.regions[id]&&!state.busy){state.selected=id;render();}}
+function select(id){if(state.regions[id]&&!state.busy&&state.status!=="won"&&state.status!=="lost"){state.selected=id;render();}}
+$("transfer-from").addEventListener("change",populateTransferControls);
 async function animateMarch(fromId,toId,count){
  const a=document.querySelector('.prefecture[data-code="'+fromId+'"]'),b=document.querySelector('.prefecture[data-code="'+toId+'"]');
  if(!a||!b){await new Promise(r=>setTimeout(r,220));return;}
@@ -91,19 +63,46 @@ async function animateMarch(fromId,toId,count){
  Object.assign(token.style,{position:"fixed",left:sx+"px",top:sy+"px",transform:"translate(-50%,-50%)",zIndex:"30",pointerEvents:"none",transition:"transform 620ms cubic-bezier(.2,.75,.25,1),opacity 620ms",width:diameter+"px",height:diameter+"px",borderRadius:"50%",display:"grid",placeItems:"center",font:"bold "+(label.length>4?9:10)+"px sans-serif",whiteSpace:"nowrap",color:"#382f24",background:"radial-gradient(circle at 35% 30%,#fff8df,#d8bd83)",border:"1.5px solid #8c7041",boxShadow:"0 2px 6px #34251644"});
  document.body.append(token);token.getBoundingClientRect();requestAnimationFrame(()=>{token.style.transform="translate(calc(-50% + "+(ex-sx)+"px),calc(-50% + "+(ey-sy)+"px))";});await new Promise(r=>setTimeout(r,660));token.remove();
 }
-async function loadMap(){try{const res=await fetch("https://raw.githubusercontent.com/geolonia/japanese-prefectures/master/map-full.svg");if(!res.ok)throw Error("map fetch failed");const doc=new DOMParser().parseFromString(await res.text(),"image/svg+xml"),svg=doc.querySelector("svg");if(!svg||doc.querySelector("parsererror"))throw Error("invalid svg");svg.removeAttribute("width");svg.removeAttribute("height");svg.setAttribute("preserveAspectRatio","xMidYMid meet");
- const map=$("map"),controls=map.querySelector(".map-controls");map.querySelectorAll("svg").forEach(old=>old.remove());map.insertBefore(document.importNode(svg,true),controls?controls.nextSibling:null);setZoom(state.zoom);const nodes=map.querySelectorAll(".prefecture");nodes.forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));if(!state.regions[id])return;el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label",state.regions[id].name);el.addEventListener("click",()=>select(id));el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id);}});});if(nodes.length!==47)log("注意：地図SVGから認識できた県グループは"+nodes.length+"件です（期待値47）。地図コードの再検証が必要です。");render();}catch(e){$("map").innerHTML='<div class="fallback">地図を読み込めませんでした。通信環境を確認して再読み込みしてください。</div>';}}
-function begin(){state.started=true;state.player=state.selected;state.regions[state.player].owner=state.player;log(state.regions[state.player].name+"を選び、天下統一への歩みを始めた。");render();}
+async function loadMap(){
+ const url="https://raw.githubusercontent.com/geolonia/japanese-prefectures/master/map-full.svg";let lastError=null;
+ for(let attempt=1;attempt<=3;attempt++){try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);let res;
+  try{res=await fetch(url,{signal:controller.signal,cache:attempt===1?"default":"reload"});}finally{clearTimeout(timer);}
+  if(!res.ok)throw Error("地図取得失敗（HTTP "+res.status+"）");
+  const doc=new DOMParser().parseFromString(await res.text(),"image/svg+xml"),svg=doc.querySelector("svg");if(!svg||doc.querySelector("parsererror"))throw Error("SVG形式が不正");
+  const nodes=[...svg.querySelectorAll(".prefecture")],ids=nodes.map(el=>+(el.dataset.code||el.getAttribute("data-code")));
+  if(nodes.length!==47||new Set(ids).size!==47||ids.some(id=>!state.regions[id]))throw Error("地図の県コードが47県と一致しない");
+  svg.removeAttribute("width");svg.removeAttribute("height");svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+  const map=$("map"),controls=map.querySelector(".map-controls");map.querySelectorAll("svg").forEach(old=>old.remove());map.insertBefore(document.importNode(svg,true),controls?controls.nextSibling:null);
+  setZoom(state.zoom);nodes.forEach(source=>{const id=+(source.dataset.code||source.getAttribute("data-code")),el=map.querySelector('.prefecture[data-code="'+id+'"]');if(!el)return;el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label",state.regions[id].name);el.addEventListener("click",()=>select(id));el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id);}});});
+  render();return;
+ }catch(e){lastError=e;if(attempt<3)await new Promise(r=>setTimeout(r,500*attempt));}}
+ const fallback=document.createElement("div");fallback.className="fallback";fallback.textContent="日本地図を読み込めませんでした。通信環境を確認して、ページを再読み込みしてください。（"+(lastError?.message||"不明なエラー")+"）";const map=$("map"),controls=map.querySelector(".map-controls");map.querySelectorAll("svg,.fallback").forEach(el=>el.remove());map.insertBefore(fallback,controls?controls.nextSibling:null);
+}
+function begin(){if(state.started)return;state.started=true;state.status="active";state.player=state.selected;state.regions[state.player].owner=state.player;log(state.regions[state.player].name+"を選び、天下統一への歩みを始めた。");render();}
 async function attack(){
  if(state.busy)return;const plan=attackPlan();if(!plan){log("選択した県から進攻できる隣接国がありません。自国領または隣接する敵国を選んでください。");return;}
  const {from,target}=plan;if(from.owner!==state.player||target.owner===state.player)return;
- const atk=strength(from),def=strength(target),chance=Math.max(.18,Math.min(.82,.5+(atk-def)/(atk+def)*.85)),roll=Math.random(),cost=Math.max(1,Math.ceil(from.troops*.18));
+ const chance=battleChance(from,target),roll=Math.random(),cost=plan.cost;
  state.busy=true;render();await animateMarch(from.id,target.id,cost);from.troops=Math.max(0,from.troops-cost);
- if(roll<chance){const old=target.name,loss=Math.ceil(target.troops*.55),previous=target.owner;target.owner=state.player;target.troops=Math.max(20,Math.floor(target.troops*.35));target.stability=55;log(from.name+"から進攻し、"+old+"を制圧！ "+old+"は"+state.regions[state.player].name+"国に編入された（旧所属："+state.regions[previous].name+"国／損耗 "+loss+"）。");}
- else{from.troops=Math.max(0,from.troops-Math.ceil(cost*.65));target.troops=Math.max(0,target.troops-Math.ceil(target.troops*.12));log(from.name+"からの"+target.name+"への進攻は失敗。兵力を消耗した。");}
+ const outcome=resolveBattle(from,target,roll,cost);if(outcome.won)log(from.name+"から進攻し、"+target.name+"を制圧！ "+target.name+"は"+state.regions[state.player].name+"国に編入された（旧所属："+state.regions[outcome.previousOwner].name+"国）。");else log(from.name+"からの"+target.name+"への進攻は失敗。兵力を消耗した。");
  state.selected=target.id;state.busy=false;render();
 }
-function growth(r){const ag=r.agriculture/100,ind=r.industry/100,svc=r.service/100,wealth=r.economy/100;const food=Math.max(.1,ag*1.3+svc*.2);r.population+=Math.max(1,r.population*(.00035+food*.00035));r.economy+=Math.max(1,r.economy*(.001+ind*.0012+svc*.0015+ag*.0004));r.agriculture+=Math.max(0,ag*.025+Math.random()*.012);r.industry+=Math.max(0,ind*.02+wealth*.002+Math.random()*.012);r.service+=Math.max(0,svc*.022+wealth*.002+Math.random()*.012);r.troops+=Math.max(1,Math.floor((r.economy*.012+r.industry*.12+r.population*.001)/Math.max(1,1+(100-r.stability)/50)));r.stability=Math.min(100,r.stability+.6);}
+function resolveBattle(from,target,roll=Math.random(),dispatch=Math.max(1,Math.ceil(from.troops*.18))){
+ const chance=battleChance(from,target),previousOwner=target.owner;from.troops=Math.max(0,from.troops-dispatch);
+ if(roll<chance){const defendersLost=Math.ceil(target.troops*.55);target.owner=from.owner;target.troops=Math.max(20,Math.floor(target.troops*.35));target.stability=55;return {won:true,chance,previousOwner,defendersLost};}
+ from.troops=Math.max(0,from.troops-Math.ceil(dispatch*.65));target.troops=Math.max(0,target.troops-Math.ceil(target.troops*.12));return {won:false,chance,previousOwner};
+}
+function growth(r){
+ const ag=Math.max(0,r.agriculture)/100,ind=Math.max(0,r.industry)/100,svc=Math.max(0,r.service)/100,wealth=Math.max(0,r.economy)/100,stability=Math.max(.25,r.stability/100);
+ const food=Math.max(.15,ag*1.35+svc*.12);
+ r.population+=Math.max(1,r.population*(.0002+food*.00042));
+ r.economy+=Math.max(1,r.economy*(.00055+ind*.0011+svc*.00125+ag*.0003));
+ r.agriculture=Math.min(160,r.agriculture+Math.max(.004,ag*.018+wealth*.003+Math.random()*.008));
+ r.industry=Math.min(160,r.industry+Math.max(.004,ind*.018+wealth*.006+svc*.002+Math.random()*.008));
+ r.service=Math.min(160,r.service+Math.max(.004,svc*.02+wealth*.004+ind*.001+Math.random()*.008));
+ r.troops+=Math.max(1,Math.floor((r.economy*.009+r.industry*.15+r.population*.0012)*stability));r.stability=Math.min(100,r.stability+.7+svc*.008);
+}
 async function aiTurn(){
  const nations=[...new Set(Object.values(state.regions).map(r=>r.owner).filter(owner=>owner!==state.player))];
  for(const owner of nations){
@@ -112,17 +111,19 @@ async function aiTurn(){
   const a=sources.sort((x,y)=>strength(y)-strength(x))[0];
   const borders=neighbors(a.id).map(id=>state.regions[id]).filter(r=>r.owner!==owner);
   if(!borders.length||a.troops<100)continue;
-  const target=borders.sort((x,y)=>strength(x)-strength(y))[0],ratio=strength(a)/(strength(target)+1);
-  if(ratio<=1.12||Math.random()>=Math.min(.42,.12+(ratio-1.2)*.18))continue;
-  const p=Math.max(.12,Math.min(.78,.5+(strength(a)-strength(target))/(strength(a)+strength(target))*.8)),won=Math.random()<p,dispatch=Math.max(1,Math.ceil(a.troops*.16));
-  await animateMarch(a.id,target.id,dispatch);a.troops=Math.max(0,a.troops-dispatch);
-  if(won){const oldOwner=target.owner,oldName=target.name,loss=Math.ceil(target.troops*.55);target.owner=owner;target.troops=Math.max(15,Math.floor(target.troops*.3));target.stability=50;log(state.regions[owner].name+"国が"+oldName+"を制圧。"+oldName+"は"+state.regions[owner].name+"国に編入（旧所属："+state.regions[oldOwner].name+"国／損耗 "+loss+"）。");}
-  else{target.troops=Math.max(0,target.troops-Math.ceil(target.troops*.12));log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");}
+  const target=borders.sort((x,y)=>{const vx=x.economy*.12+x.population*.015+x.industry*.22+x.agriculture*.08+x.service*.06,vy=y.economy*.12+y.population*.015+y.industry*.22+y.agriculture*.08+y.service*.06;return (strength(x)-vx*.025)-(strength(y)-vy*.025);})[0],ratio=strength(a)/(strength(target)+1);
+  if(ratio<=1.08||Math.random()>=Math.min(.38,.10+(ratio-1.08)*.16))continue;
+  const dispatch=Math.max(1,Math.ceil(a.troops*.16));await animateMarch(a.id,target.id,dispatch);
+  const outcome=resolveBattle(a,target,Math.random(),dispatch);
+  if(outcome.won)log(state.regions[owner].name+"国が"+target.name+"を制圧。"+target.name+"は"+state.regions[owner].name+"国に編入（旧所属："+state.regions[outcome.previousOwner].name+"国）。");
+  else log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");
  }
 }
-async function endTurn(){if(state.busy)return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");if(mine===47)log("全国統一を達成！");if(mine===0)log("自国の領土がなくなった。自国は滅亡した。");state.busy=false;render();}
-function save(){localStorage.setItem("todofukenTaisenSaveV2",JSON.stringify(state));log("進行状況を保存した。");}
-function load(){try{const raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;const s=JSON.parse(raw);if(!s.regions||Object.keys(s.regions).length!==47)throw Error("invalid save");Object.assign(state,s);return true;}catch(e){log("セーブデータを読み込めませんでした。");return false;}}
+async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();}
+function runSelfTests(){const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");for(let id=1;id<=47;id++){check(Array.isArray(LAND[id]),"陸上隣接配列 "+id);for(const n of LAND[id])check((LAND[n]||[]).includes(id),"隣接相互性 "+id+"-"+n);}for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);if(failures.length)log("開発者検査で問題："+failures.slice(0,8).join(" / "));else log("内部検査完了：47県・陸上隣接の相互性・特別接続を確認。");return failures;}
+function save(){try{const snapshot={version:3,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,regions:state.regions,logs:state.logs,specialEnabled:state.specialEnabled};localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));log("進行状況を保存した。");}catch(e){log("保存できませんでした。端末の空き容量やブラウザ設定を確認してください。");}}
+function validateSave(s){if(!s||!s.regions||Object.keys(s.regions).length!==47)throw Error("県データ数が不正");for(let id=1;id<=47;id++){const r=s.regions[id];if(!r||r.id!==id||r.name!==PREFS[id-1][0]||!Number.isInteger(r.owner)||r.owner<1||r.owner>47)throw Error("県データが不正");for(const k of ["population","economy","agriculture","industry","service","troops","stability"])if(!Number.isFinite(r[k])||r[k]<0||r[k]>100000000)throw Error("数値データが不正");}if(!Number.isInteger(s.turn)||s.turn<1||!Number.isInteger(s.selected)||s.selected<1||s.selected>47)throw Error("進行情報が不正");if(s.started&&(!Number.isInteger(s.player)||s.player<1||s.player>47))throw Error("プレイヤー情報が不正");if(!["setup","active","won","lost",undefined].includes(s.status))throw Error("ゲーム状態が不正");}
+function load(){try{let raw=localStorage.getItem(SAVE_KEY),s;if(!raw){raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;s=JSON.parse(raw);validateSave(s);s.status=s.started?"active":"setup";log("旧バージョンのセーブを引き継ぎました。次回保存時に新形式へ更新します。");}else{s=JSON.parse(raw);if(s.version!==3)throw Error("非対応バージョン");validateSave(s);}Object.assign(state,s,{busy:false});if(!state.status)state.status=state.started?"active":"setup";return true;}catch(e){log("セーブデータが破損または非対応のため読み込めませんでした。既存データは自動削除していません。");return false;}}
 $("zoom-reset").onclick=()=>{state.panX=0;state.panY=0;setZoom(1);};$("transfer-button").onclick=transferTroops;
 const mapViewport=$("map");let drag=null,suppressMapClick=false;
 mapViewport.addEventListener("pointerdown",e=>{
@@ -148,6 +149,7 @@ function touchDistance(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1
 mapViewport.addEventListener("touchstart",e=>{if(e.touches.length===2){e.preventDefault();const rect=mapViewport.getBoundingClientRect(),midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2;pinch={distance:touchDistance(e.touches),zoom:state.zoom,panX:state.panX,panY:state.panY,x:midX-rect.left-rect.width/2,y:midY-rect.top-rect.height/2};}},{passive:false});
 mapViewport.addEventListener("touchmove",e=>{if(!pinch||e.touches.length!==2)return;e.preventDefault();const rect=mapViewport.getBoundingClientRect(),ratio=touchDistance(e.touches)/Math.max(1,pinch.distance),next=Math.max(1,Math.min(2.8,pinch.zoom*ratio)),scale=next/pinch.zoom;const midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2,x=midX-rect.left-rect.width/2,y=midY-rect.top-rect.height/2;state.zoom=next;state.panX=x-(pinch.x-pinch.panX)*scale;state.panY=y-(pinch.y-pinch.panY)*scale;applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";},{passive:false});
 mapViewport.addEventListener("touchend",e=>{if(e.touches.length<2)pinch=null;},{passive:true});mapViewport.addEventListener("touchcancel",()=>{pinch=null;},{passive:true});
-window.addEventListener("resize",applyMapTransform);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
+window.addEventListener("resize",applyMapTransform);$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem(SAVE_KEY);localStorage.removeItem("todofukenTaisenSaveV2");location.reload();}};
 if(load()){log("保存データを読み込んだ。");if(state.started)$("intro").classList.add("hidden");}
-render();loadMap();
+try{validateWorld();}catch(e){log("内部データ検証エラー："+e.message);}
+runSelfTests();render();loadMap();

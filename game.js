@@ -120,7 +120,24 @@ async function aiTurn(){
  }
 }
 async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();}
-function runSelfTests(){const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");for(let id=1;id<=47;id++){check(Array.isArray(LAND[id]),"陸上隣接配列 "+id);for(const n of LAND[id])check((LAND[n]||[]).includes(id),"隣接相互性 "+id+"-"+n);}for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);if(failures.length)log("開発者検査で問題："+failures.slice(0,8).join(" / "));else log("内部検査完了：47県・陸上隣接の相互性・特別接続を確認。");return failures;}
+function runSelfTests(){
+ const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};
+ check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");
+ for(let id=1;id<=47;id++){check(Array.isArray(LAND[id]),"陸上隣接配列 "+id);for(const n of LAND[id])check((LAND[n]||[]).includes(id),"隣接相互性 "+id+"-"+n);}
+ for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);
+ const oldPlayer=state.player,owners=Object.fromEntries(Object.entries(state.regions).map(([id,r])=>[id,r.owner]));
+ try{
+  state.player=1;for(const r of Object.values(state.regions))r.owner=r.id;state.regions[1].owner=1;state.regions[2].owner=1;state.regions[3].owner=1;
+  const route=reachableOwned(1).map(r=>r.id);check(route.includes(2)&&route.includes(3),"自国領経由の移送経路");check(!route.includes(4),"敵領を越える移送禁止");
+ }catch(e){failures.push("移送経路検査 "+e.message);}
+ finally{state.player=oldPlayer;for(const [id,owner] of Object.entries(owners))state.regions[id].owner=owner;}
+ const attacker={owner:1,troops:100,economy:100,industry:60,agriculture:50,service:50},defender={owner:2,troops:80,economy:80,industry:50,agriculture:50,service:50};
+ const win=resolveBattle({...attacker},defender,0,10);check(win.won&&defender.owner===1,"戦闘成功時の領土移転");
+ const attacker2={...attacker},defender2={...defender,owner:2};const loss=resolveBattle(attacker2,defender2,1,10);check(!loss.won&&defender2.owner===2,"戦闘失敗時の領土維持");
+ try{validateSave({version:3,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,regions:state.regions});check(true,"セーブ形式検査");}catch(e){failures.push("有効なセーブ検査 "+e.message);}
+ if(failures.length)log("開発者検査で問題："+failures.slice(0,8).join(" / "));else log("内部検査完了：47県・隣接・移送経路・戦闘結果・セーブ形式を確認。");
+ return failures;
+}
 function save(){try{const snapshot={version:3,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,regions:state.regions,logs:state.logs,specialEnabled:state.specialEnabled};localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));log("進行状況を保存した。");}catch(e){log("保存できませんでした。端末の空き容量やブラウザ設定を確認してください。");}}
 function validateSave(s){if(!s||!s.regions||Object.keys(s.regions).length!==47)throw Error("県データ数が不正");for(let id=1;id<=47;id++){const r=s.regions[id];if(!r||r.id!==id||r.name!==PREFS[id-1][0]||!Number.isInteger(r.owner)||r.owner<1||r.owner>47)throw Error("県データが不正");for(const k of ["population","economy","agriculture","industry","service","troops","stability"])if(!Number.isFinite(r[k])||r[k]<0||r[k]>100000000)throw Error("数値データが不正");}if(!Number.isInteger(s.turn)||s.turn<1||!Number.isInteger(s.selected)||s.selected<1||s.selected>47)throw Error("進行情報が不正");if(s.started&&(!Number.isInteger(s.player)||s.player<1||s.player>47))throw Error("プレイヤー情報が不正");if(!["setup","active","won","lost",undefined].includes(s.status))throw Error("ゲーム状態が不正");}
 function load(){try{let raw=localStorage.getItem(SAVE_KEY),s;if(!raw){raw=localStorage.getItem("todofukenTaisenSaveV2");if(!raw)return false;s=JSON.parse(raw);validateSave(s);s.status=s.started?"active":"setup";log("旧バージョンのセーブを引き継ぎました。次回保存時に新形式へ更新します。");}else{s=JSON.parse(raw);if(s.version!==3)throw Error("非対応バージョン");validateSave(s);}Object.assign(state,s,{busy:false});if(!state.status)state.status=state.started?"active":"setup";return true;}catch(e){log("セーブデータが破損または非対応のため読み込めませんでした。既存データは自動削除していません。");return false;}}

@@ -108,18 +108,35 @@ function resolveBattle(from,target,roll=Math.random(),dispatch=Math.max(1,Math.c
 function growth(r){
  const ag=Math.max(0,r.agriculture)/100,ind=Math.max(0,r.industry)/100,svc=Math.max(0,r.service)/100,wealth=Math.max(0,r.economy)/100,stability=Math.max(.25,r.stability/100),population=Math.max(0,r.population);
  const food=Math.max(.15,ag*1.5+svc*.18);
- r.population+=Math.max(1,r.population*(.00018+food*.00046));
- r.economy+=Math.max(1,r.economy*(.0004+ind*.00105+svc*.0011+ag*.00075+Math.min(1,population/10000)*.0002));
- r.agriculture=Math.min(160,r.agriculture+Math.max(.004,ag*.022+wealth*.004+svc*.001+Math.random()*.006));
- r.industry=Math.min(160,r.industry+Math.max(.004,ind*.02+wealth*.006+svc*.002+Math.random()*.006));
- r.service=Math.min(160,r.service+Math.max(.004,svc*.022+wealth*.004+ind*.001+Math.random()*.006));
- r.troops+=Math.max(1,Math.floor((r.economy*.009+r.industry*.15+r.population*.0012)*stability));r.stability=Math.min(100,r.stability+.7+svc*.008);
+ const populationRate=Math.min(.0045,.00075+food*.0012+ind*.00025+svc*.00035+wealth*.00015);
+ const economyRate=Math.min(.009,.0012+ind*.0018+svc*.0018+ag*.0011+Math.min(1,population/10000)*.00035);
+ r.population+=Math.max(2,Math.floor(population*populationRate));
+ r.economy+=Math.max(2,Math.floor(r.economy*economyRate));
+ r.agriculture=Math.min(160,r.agriculture+Math.max(.012,ag*.045+wealth*.008+svc*.002+Math.random()*.01));
+ r.industry=Math.min(160,r.industry+Math.max(.012,ind*.042+wealth*.012+svc*.004+Math.random()*.01));
+ r.service=Math.min(160,r.service+Math.max(.012,svc*.045+wealth*.008+ind*.003+Math.random()*.01));
+ r.troops+=Math.max(3,Math.floor((r.economy*.018+r.industry*.3+r.population*.0025)*stability));
+ r.stability=Math.min(100,r.stability+.7+svc*.008);
+}
+function allianceAid(owner){
+ const partners=state.alliances.map(a=>a.a===owner?a.b:a.b===owner?a.a:null).filter(Boolean);
+ const regions=Object.values(state.regions).filter(r=>partners.includes(r.owner));
+ if(!regions.length)return {troops:0,economy:0};
+ const totalTroops=regions.reduce((sum,r)=>sum+r.troops,0),totalEconomy=regions.reduce((sum,r)=>sum+r.economy,0);
+ return {troops:Math.min(25,Math.max(3,Math.floor(totalTroops*.006))),economy:Math.min(12,Math.max(1,Math.floor(totalEconomy*.004)))};
+}
+function applyAllianceAid(owner){
+ const aid=allianceAid(owner);if(!aid.troops&&!aid.economy)return;
+ const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)return;
+ const target=owned.find(r=>r.id===owner)||owned.sort((a,b)=>a.troops-b.troops)[0];
+ target.troops+=aid.troops;target.economy+=aid.economy;
+ log(state.regions[owner].name+"国は連合国から支援を受けた（兵力 +"+aid.troops+"・経済力 +"+aid.economy+"）。");
 }
 async function aiTurn(){
  processAllianceDiplomacy();
  const nations=[...new Set(Object.values(state.regions).map(r=>r.owner).filter(owner=>owner!==state.player))];
  for(const owner of nations){
-  const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);const bonus=awardTerritoryBonus(owner);if(bonus)log(state.regions[owner].name+"国に領土ボーナス +"+bonus+"兵力（"+owned.length+"県を支配）。");
+  const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);applyAllianceAid(owner);const bonus=awardTerritoryBonus(owner);if(bonus)log(state.regions[owner].name+"国に領土ボーナス +"+bonus+"兵力（"+owned.length+"県を支配）。");
   const sources=owned.filter(a=>neighbors(a.id).some(n=>state.regions[n].owner!==owner));if(!sources.length)continue;
   const a=sources.sort((x,y)=>strength(y)-strength(x))[0];
   const borders=neighbors(a.id).map(id=>state.regions[id]).filter(r=>r.owner!==owner&&!isAllied(owner,r.owner));
@@ -132,7 +149,7 @@ async function aiTurn(){
   else log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");
  }
 }
-async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;processAllianceExits();const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();}
+async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);applyAllianceAid(state.player);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;processAllianceExits();const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();}
 function runSelfTests(){
  const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};
  check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");
@@ -145,7 +162,7 @@ function runSelfTests(){
  }catch(e){failures.push("移送経路検査 "+e.message);}
  finally{state.player=oldPlayer;for(const [id,owner] of Object.entries(owners))state.regions[id].owner=owner;}
  const oldAlliances=state.alliances,oldOwner3=state.regions[3].owner;
- try{state.alliances=[{a:1,b:2,formedTurn:1,exitTurn:null}];state.regions[3].owner=2;check(isAllied(1,2)&&!isAllied(1,3),"連合関係判定");check(alliedSupport(1,4)>0,"隣接連合国の戦闘支援");}
+ try{state.alliances=[{a:1,b:2,formedTurn:1,exitTurn:null}];state.regions[3].owner=2;check(isAllied(1,2)&&!isAllied(1,3),"連合関係判定");check(alliedSupport(1,4)>0,"隣接連合国の戦闘支援");const aid=allianceAid(1);check(aid.troops>=3&&aid.troops<=25&&aid.economy>=1&&aid.economy<=12,"連合国の毎ターン支援量");}
  catch(e){failures.push("連合検査 "+e.message);}
  finally{state.alliances=oldAlliances;state.regions[3].owner=oldOwner3;}
  const attacker={owner:1,troops:100,economy:100,industry:60,agriculture:50,service:50},defender={owner:2,troops:80,economy:80,industry:50,agriculture:50,service:50};

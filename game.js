@@ -108,7 +108,7 @@ function resolveBattle(from,target,roll=Math.random(),dispatch=dispatchFor(from)
  from.troops=Math.max(0,attackerBefore-dispatch);
  if(roll<chance){
   target.owner=from.owner;target.troops=Math.max(20,Math.floor(defenderBefore*.35));target.stability=55;
-  return {won:true,chance,previousOwner,dispatch,attackerLost:attackerBefore-from.troops,defendersLost:defenderBefore-target.troops};
+  return {won:true,chance,previousOwner,dispatch,attackerLost:attackerBefore-from.troops,defendersLost:Math.max(0,defenderBefore-target.troops)};
  }
  const extraLoss=Math.min(from.troops,Math.ceil(dispatch*.65));
  from.troops-=extraLoss;
@@ -164,9 +164,9 @@ function showVictory(){const overlay=$("victory-overlay");if(!overlay)return;$("
 async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);applyAllianceAid(state.player);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;processAllianceExits();const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();if(state.status==="won")showVictory();}
 function runSelfTests(){
  const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};
- check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");
+ check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");const landPairCount=Object.entries(LAND).reduce((sum,[id,list])=>sum+list.filter(n=>n>+id).length,0);check(landPairCount===86,"地理的な陸上隣接86組");
  for(let id=1;id<=47;id++){check(Array.isArray(LAND[id]),"陸上隣接配列 "+id);for(const n of LAND[id])check((LAND[n]||[]).includes(id),"隣接相互性 "+id+"-"+n);}
- for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);check(neighbors(46).includes(47)&&neighbors(47).includes(46),"鹿児島・沖縄の航路接続");check(LAND[31].includes(34)&&LAND[34].includes(31),"鳥取・広島の短い県境");check(LAND[21].includes(18)&&LAND[18].includes(21),"岐阜・福井の県境");
+ for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);check(neighbors(46).includes(47)&&neighbors(47).includes(46),"鹿児島・沖縄の航路接続");check(LAND[31].includes(34)&&LAND[34].includes(31),"鳥取・広島の短い県境");check(LAND[21].includes(18)&&LAND[18].includes(21),"岐阜・福井の県境");check(LAND[36].includes(38)&&LAND[38].includes(36),"徳島・愛媛の県境");check(!LAND[12].includes(14)&&neighbors(12).includes(14),"千葉・神奈川は陸上でなく特別航路");check(!LAND[42].includes(43)&&neighbors(42).includes(43),"長崎・熊本は陸上でなく特別航路");
  const oldPlayer=state.player,owners=Object.fromEntries(Object.entries(state.regions).map(([id,r])=>[id,r.owner]));
  try{
   state.player=1;for(const r of Object.values(state.regions))r.owner=r.id;state.regions[1].owner=1;state.regions[2].owner=1;state.regions[3].owner=1;

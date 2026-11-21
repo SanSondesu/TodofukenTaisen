@@ -95,7 +95,38 @@ async function loadMap(){
 function begin(){if(state.started)return;state.started=true;state.status="active";state.player=state.selected;state.regions[state.player].owner=state.player;log(state.regions[state.player].name+"を選び、天下統一への歩みを始めた。");render();}
 let conquestAudioContext=null;
 function prepareConquestAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;if(!conquestAudioContext)conquestAudioContext=new AC();if(conquestAudioContext.state==="suspended")conquestAudioContext.resume().catch(()=>{});return conquestAudioContext;}catch(e){return null;}}
-function playConquestSound(){const ctx=prepareConquestAudio();if(!ctx)return;const start=ctx.currentTime;const drum=ctx.createOscillator(),drumGain=ctx.createGain();drum.type="sine";drum.frequency.setValueAtTime(105,start+.12);drum.frequency.exponentialRampToValueAtTime(48,start+.42);drumGain.gain.setValueAtTime(.0001,start+.12);drumGain.gain.exponentialRampToValueAtTime(.22,start+.15);drumGain.gain.exponentialRampToValueAtTime(.0001,start+.62);drum.connect(drumGain);drumGain.connect(ctx.destination);drum.start(start+.12);drum.stop(start+.64);[392,587.33,783.99].forEach((hz,i)=>{const osc=ctx.createOscillator(),gain=ctx.createGain(),at=start+.72+i*.012;osc.type="sine";osc.frequency.setValueAtTime(hz,at);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.045/(i+1),at+.035);gain.gain.exponentialRampToValueAtTime(.0001,at+2.15-i*.18);osc.connect(gain);gain.connect(ctx.destination);osc.start(at);osc.stop(at+2.2);});}
+function playConquestSound(){
+ const ctx=prepareConquestAudio();if(!ctx)return;
+ const start=ctx.currentTime+.10;
+ // 「どんっ！どどどん！」の四打。低音の胴鳴り＋高めの皮のアタックで和太鼓らしさを出す。
+ const hits=[
+  {at:.00,power:1.00,tail:.58},
+  {at:.68,power:.72,tail:.34},
+  {at:.84,power:.78,tail:.36},
+  {at:1.08,power:1.18,tail:.72}
+ ];
+ hits.forEach((hit,index)=>{
+  const at=start+hit.at;
+  const body=ctx.createOscillator(),bodyGain=ctx.createGain();
+  body.type="sine";
+  body.frequency.setValueAtTime(index===3?92:84,at);
+  body.frequency.exponentialRampToValueAtTime(index===3?39:43,at+.19);
+  bodyGain.gain.setValueAtTime(.0001,at);
+  bodyGain.gain.exponentialRampToValueAtTime(.34*hit.power,at+.012);
+  bodyGain.gain.exponentialRampToValueAtTime(.0001,at+hit.tail);
+  body.connect(bodyGain);bodyGain.connect(ctx.destination);
+  body.start(at);body.stop(at+hit.tail+.02);
+  const skin=ctx.createOscillator(),skinGain=ctx.createGain();
+  skin.type="triangle";
+  skin.frequency.setValueAtTime(190,at);
+  skin.frequency.exponentialRampToValueAtTime(78,at+.075);
+  skinGain.gain.setValueAtTime(.0001,at);
+  skinGain.gain.exponentialRampToValueAtTime(.105*hit.power,at+.006);
+  skinGain.gain.exponentialRampToValueAtTime(.0001,at+.105);
+  skin.connect(skinGain);skinGain.connect(ctx.destination);
+  skin.start(at);skin.stop(at+.12);
+ });
+}
 async function attack(){
  if(state.busy)return;prepareConquestAudio();const plan=attackPlan();if(!plan){log("選択した県から進攻できる隣接国がありません。自国領または隣接する敵国を選んでください。");return;}
  const {from,target}=plan;if(from.owner!==state.player||target.owner===state.player)return;

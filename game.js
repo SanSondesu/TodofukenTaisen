@@ -98,7 +98,7 @@ async function attack(){
  const chance=battleChance(from,target),roll=Math.random(),cost=plan.cost;
  state.busy=true;render();await animateMarch(from.id,target.id,cost);from.troops=Math.max(0,from.troops-cost);
  const outcome=resolveBattle(from,target,roll,cost);if(outcome.won)log(from.name+"から進攻し、"+target.name+"を制圧！ "+target.name+"は"+state.regions[state.player].name+"国に編入された（旧所属："+state.regions[outcome.previousOwner].name+"国）。");else log(from.name+"からの"+target.name+"への進攻は失敗。兵力を消耗した。");
- state.selected=target.id;state.busy=false;render();
+ state.selected=target.id;state.busy=false;render();if(outcome.won)showConquest(target.name);
 }
 function resolveBattle(from,target,roll=Math.random(),dispatch=Math.max(1,Math.ceil(from.troops*.18))){
  const chance=battleChance(from,target),previousOwner=target.owner;from.troops=Math.max(0,from.troops-dispatch);
@@ -149,13 +149,14 @@ async function aiTurn(){
   else log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");
  }
 }
+function showConquest(name){const overlay=$("conquest-overlay"),title=$("conquest-title");if(!overlay||!title)return;title.textContent="征服完了";overlay.classList.remove("hidden","leaving");overlay.setAttribute("aria-label",name+"を制圧。征服完了");const scroll=$("conquest-scroll");scroll.style.animation="none";void scroll.offsetWidth;scroll.style.animation="";clearTimeout(showConquest.timer);showConquest.timer=setTimeout(()=>{overlay.classList.add("leaving");setTimeout(()=>{overlay.classList.add("hidden");overlay.classList.remove("leaving");},360);},2450);}
 function showVictory(){const overlay=$("victory-overlay");if(!overlay)return;$("victory-turn").textContent="第 "+state.turn+" ターンで全国統一";overlay.classList.remove("hidden");}
 async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);applyAllianceAid(state.player);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;processAllianceExits();const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();if(state.status==="won")showVictory();}
 function runSelfTests(){
  const failures=[],check=(ok,label)=>{if(!ok)failures.push(label);};
  check(PREFS.length===47,"県データ47件");check(Object.keys(LAND).length===47,"陸上隣接47県");
  for(let id=1;id<=47;id++){check(Array.isArray(LAND[id]),"陸上隣接配列 "+id);for(const n of LAND[id])check((LAND[n]||[]).includes(id),"隣接相互性 "+id+"-"+n);}
- for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);
+ for(const e of SPECIAL)check(state.regions[e.a]&&state.regions[e.b]&&e.a!==e.b,"特別接続 "+e.a+"-"+e.b);check(neighbors(46).includes(47)&&neighbors(47).includes(46),"鹿児島・沖縄の航路接続");check(LAND[31].includes(34)&&LAND[34].includes(31),"鳥取・広島の短い県境");check(LAND[21].includes(18)&&LAND[18].includes(21),"岐阜・福井の県境");
  const oldPlayer=state.player,owners=Object.fromEntries(Object.entries(state.regions).map(([id,r])=>[id,r.owner]));
  try{
   state.player=1;for(const r of Object.values(state.regions))r.owner=r.id;state.regions[1].owner=1;state.regions[2].owner=1;state.regions[3].owner=1;

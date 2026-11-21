@@ -114,6 +114,49 @@
 }
 
 
+
+/* 紐：一本の自然なS字と、先細りの房 */
+.conquest-tassel{
+  right:12px;
+  top:48%;
+  width:3px;
+  height:76px;
+  background:linear-gradient(90deg,#171512,#5a5042 48%,#171512);
+  border-radius:2px;
+  box-shadow:0 1px 2px #0007;
+  transform:rotate(8deg);
+  transform-origin:top center;
+  filter:none;
+}
+.conquest-tassel:before{
+  content:"";
+  position:absolute;
+  left:-1px;
+  top:-28px;
+  width:35px;
+  height:57px;
+  border:3px solid #211d17;
+  border-left-color:transparent;
+  border-top-color:transparent;
+  border-radius:0 0 65% 45%;
+  transform:rotate(-22deg);
+  filter:drop-shadow(1px 1px 1px #0005);
+}
+.conquest-tassel:after{
+  top:73px;
+  left:-7px;
+  width:17px;
+  height:28px;
+  background:repeating-linear-gradient(90deg,#171512 0 1px,#514637 1px 2px,#211c16 2px 3px);
+  clip-path:polygon(40% 0,60% 0,66% 14%,78% 28%,88% 46%,100% 66%,92% 100%,8% 100%,0 66%,12% 46%,22% 28%,34% 14%);
+  filter:drop-shadow(1px 1px 1px #0006);
+}
+@media(max-width:560px){
+  .conquest-tassel{right:9px}
+  .conquest-tassel:before{width:31px;height:51px;top:-25px}
+  .conquest-tassel:after{left:-6px;width:15px;height:25px}
+}
+
 /* 巻物の構造調整：左巻き一本、右端は紙のまま */
 .conquest-paper{
   left:32px;

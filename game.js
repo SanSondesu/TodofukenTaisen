@@ -16,9 +16,10 @@ function evaluateAllianceProposal(p){const sender=alliancePower(p.from),receiver
 function processAllianceDiplomacy(){for(const p of [...state.allianceProposals]){if(p.to===state.player)continue;if(isAllied(p.from,p.to)||!Object.values(state.regions).some(r=>r.owner===p.to)){state.allianceProposals=state.allianceProposals.filter(x=>x!==p);continue;}const chance=evaluateAllianceProposal(p);state.allianceProposals=state.allianceProposals.filter(x=>x!==p);if(Math.random()<chance){state.alliances.push({a:p.from,b:p.to,formedTurn:state.turn,exitTurn:null});log(state.regions[p.to].name+"国が"+state.regions[p.from].name+"国の連合申出を受諾。連合が成立した。");}else log(state.regions[p.to].name+"国は"+state.regions[p.from].name+"国の連合申出を拒否した。");}
  const active=new Set(state.alliances.flatMap(x=>[x.a,x.b])),playerEnemies=new Set(Object.values(state.regions).filter(r=>r.owner===state.player).flatMap(r=>neighbors(r.id).map(id=>state.regions[id]?.owner).filter(o=>o&&o!==state.player&&!isAllied(state.player,o))));for(const owner of new Set(Object.values(state.regions).map(r=>r.owner))){if(owner===state.player||active.has(owner)||active.has(state.player)||state.allianceProposals.some(p=>p.from===owner||p.to===owner)||!Object.values(state.regions).some(r=>r.owner===owner))continue;const common=Object.values(state.regions).some(r=>r.owner===owner&&neighbors(r.id).some(id=>playerEnemies.has(state.regions[id]?.owner)));if(common&&Math.random()<.045){state.allianceProposals.push({from:owner,to:state.player,turn:state.turn});log(state.regions[owner].name+"国から連合申出書が届いた。受諾するか、拒否するかを選んでください。");break;}}}
 function processAllianceExits(){for(const a of state.alliances.filter(x=>x.exitTurn&&x.exitTurn<=state.turn)){state.alliances=state.alliances.filter(x=>x!==a);log(state.regions[a.a].name+"国と"+state.regions[a.b].name+"国の連合が解消された。");}}
-function attackPlan(){if(!state.started||state.status!=="active")return null;const target=state.regions[state.selected];if(!target||target.owner===state.player||isAllied(state.player,target.owner))return null;const sources=Object.values(state.regions).filter(r=>r.owner===state.player&&neighbors(r.id).includes(target.id)&&r.troops>1);if(!sources.length)return null;sources.sort((a,b)=>strength(b)-strength(a));const from=sources[0],cost=Math.max(1,Math.ceil(from.troops*.18));return {from,target,cost,chance:battleChance(from,target)};}
+function dispatchFor(from){return Math.max(1,Math.ceil(from.troops*.18));}
+function attackPlan(){if(!state.started||state.status!=="active")return null;const target=state.regions[state.selected];if(!target||target.owner===state.player||isAllied(state.player,target.owner))return null;const sources=Object.values(state.regions).filter(r=>r.owner===state.player&&neighbors(r.id).includes(target.id)&&r.troops>1);if(!sources.length)return null;sources.sort((a,b)=>strength(b)-strength(a));const from=sources[0],cost=dispatchFor(from);return {from,target,cost,chance:battleChance(from,target)};}
 function reachableOwned(fromId){const seen=new Set([fromId]),queue=[fromId];while(queue.length){const id=queue.shift();for(const next of neighbors(id)){const r=state.regions[next];if(r&&r.owner===state.player&&!seen.has(next)){seen.add(next);queue.push(next);}}}return [...seen].map(id=>state.regions[id]).filter(Boolean).sort((a,b)=>a.id-b.id);}
-function validateWorld(){const ids=Object.keys(state.regions).map(Number).sort((a,b)=>a-b);if(ids.length!==47||ids.some((id,i)=>id!==i+1))throw Error("47 prefectures missing");for(const [id,list] of Object.entries(LAND)){for(const n of list){if(!LAND[n]||!LAND[n].includes(+id))throw Error("land adjacency mismatch "+id+"-"+n);}}for(const e of SPECIAL){if(!state.regions[e.a]||!state.regions[e.b]||e.a===e.b)throw Error("invalid special route");}return true;}
+function validateWorld(){const ids=Object.keys(state.regions).map(Number).sort((a,b)=>a-b);if(ids.length!==47||ids.some((id,i)=>id!==i+1))throw Error("47 prefectures missing");for(const [id,list] of Object.entries(LAND)){if(!state.regions[id]||!Array.isArray(list))throw Error("invalid land adjacency "+id);if(new Set(list).size!==list.length)throw Error("duplicate land adjacency "+id);for(const n of list){if(+id===n||!LAND[n]||!LAND[n].includes(+id))throw Error("land adjacency mismatch "+id+"-"+n);}}for(const e of SPECIAL){if(!state.regions[e.a]||!state.regions[e.b]||e.a===e.b)throw Error("invalid special route");}return true;}
 function log(s){state.logs.unshift(s);state.logs=state.logs.slice(0,35);$("log").innerHTML=state.logs.map(x=>"<p>"+x.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+"</p>").join("");}
 function strength(r){return r.troops+Math.sqrt(r.economy)*2+r.industry*.7+r.agriculture*.25;}
 function render(){const r=state.regions[state.selected],plan=attackPlan();$("pref-name").textContent=r.name;$("pref-region").textContent=r.region+"地方・"+(r.owner===state.player&&state.started?"自国":state.started?"他国":"勢力選択");for(const k of ["population","economy","agriculture","industry","service","troops"])$(k).textContent=num(r[k]);$("power").textContent=num(strength(r));$("territory-bonus").textContent=state.started?("+"+num(territoryBonus(state.player))):"—";$("turn").textContent="第 "+state.turn+" ターン";$("phase").textContent=state.status==="won"?"天下統一":state.status==="lost"?"滅亡":state.started?"群雄割拠":"天下分け目の時代";$("nation").textContent=state.started?state.regions[state.player].name+"国":"勢力未選択";$("start").disabled=state.started;$("setup").classList.toggle("hidden",state.started);$("game").classList.toggle("hidden",!state.started);$("attack").classList.toggle("hidden",!plan);$("attack").disabled=state.busy||!plan;$("end").disabled=state.busy||state.status!=="active";$("transfer-button").disabled=state.busy||state.status!=="active";populateTransferControls();renderAlliancePanel();$("help").textContent=state.status==="won"?"全国統一を達成しました。おめでとうございます。":state.status==="lost"?"自国は滅亡しました。最初からで新しい戦いを始められます。":state.started?(plan?(plan.from.name+"から"+plan.target.name+"へ進攻します。成功率の目安："+Math.round(plan.chance*100)+"%。派遣："+num(plan.cost)+"兵力。"):"攻撃したい敵の都道府県を地図から選択してください。攻撃可能なら攻撃元・成功率・派遣兵力を表示します。"):"地図からあなたの国を選びましょう。";document.querySelectorAll(".prefecture").forEach(el=>{const id=+(el.dataset.code||el.getAttribute("data-code"));el.classList.toggle("selected",id===state.selected);el.classList.toggle("setup-selected",!state.started&&id===state.selected);el.classList.toggle("player",state.started&&state.regions[id]?.owner===state.player);el.classList.toggle("enemy",state.started&&state.regions[id]?.owner!==state.player);el.classList.toggle("conquered",state.started&&state.regions[id]?.owner!==id);el.classList.toggle("border-with-conquered",state.started&&state.regions[id]?.owner===state.player&&neighbors(id).some(n=>state.regions[n].owner!==state.player));if(state.started&&state.regions[id])el.style.setProperty("--faction-fill",factionColor(state.regions[id].owner));else el.style.removeProperty("--faction-fill");});$("map-status").textContent=state.started?"各国の領土は勢力ごとの色で表示。征服地は同じ色を少し暗く表示。":"地図上の都道府県を選択してください。";}
@@ -96,14 +97,23 @@ async function attack(){
  if(state.busy)return;const plan=attackPlan();if(!plan){log("選択した県から進攻できる隣接国がありません。自国領または隣接する敵国を選んでください。");return;}
  const {from,target}=plan;if(from.owner!==state.player||target.owner===state.player)return;
  const chance=battleChance(from,target),roll=Math.random(),cost=plan.cost;
- state.busy=true;render();await animateMarch(from.id,target.id,cost);from.troops=Math.max(0,from.troops-cost);
+ state.busy=true;render();await animateMarch(from.id,target.id,cost);
  const outcome=resolveBattle(from,target,roll,cost);if(outcome.won)log(from.name+"から進攻し、"+target.name+"を制圧！ "+target.name+"は"+state.regions[state.player].name+"国に編入された（旧所属："+state.regions[outcome.previousOwner].name+"国）。");else log(from.name+"からの"+target.name+"への進攻は失敗。兵力を消耗した。");
  state.selected=target.id;state.busy=false;render();if(outcome.won)showConquest(target.name);
 }
-function resolveBattle(from,target,roll=Math.random(),dispatch=Math.max(1,Math.ceil(from.troops*.18))){
- const chance=battleChance(from,target),previousOwner=target.owner;from.troops=Math.max(0,from.troops-dispatch);
- if(roll<chance){const defendersLost=Math.ceil(target.troops*.55);target.owner=from.owner;target.troops=Math.max(20,Math.floor(target.troops*.35));target.stability=55;return {won:true,chance,previousOwner,defendersLost};}
- from.troops=Math.max(0,from.troops-Math.ceil(dispatch*.65));target.troops=Math.max(0,target.troops-Math.ceil(target.troops*.12));return {won:false,chance,previousOwner};
+function resolveBattle(from,target,roll=Math.random(),dispatch=dispatchFor(from)){
+ const chance=battleChance(from,target),previousOwner=target.owner,attackerBefore=from.troops,defenderBefore=target.troops;
+ dispatch=Math.max(1,Math.min(attackerBefore,Math.floor(dispatch)));
+ // 派遣兵力はこの関数内で一度だけ消費する。失敗時の追加損耗も全勢力共通。
+ from.troops=Math.max(0,attackerBefore-dispatch);
+ if(roll<chance){
+  target.owner=from.owner;target.troops=Math.max(20,Math.floor(defenderBefore*.35));target.stability=55;
+  return {won:true,chance,previousOwner,dispatch,attackerLost:attackerBefore-from.troops,defendersLost:defenderBefore-target.troops};
+ }
+ const extraLoss=Math.min(from.troops,Math.ceil(dispatch*.65));
+ from.troops-=extraLoss;
+ target.troops=Math.max(0,defenderBefore-Math.ceil(defenderBefore*.12));
+ return {won:false,chance,previousOwner,dispatch,attackerLost:attackerBefore-from.troops,defendersLost:defenderBefore-target.troops};
 }
 function growth(r){
  const ag=Math.max(0,r.agriculture)/100,ind=Math.max(0,r.industry)/100,svc=Math.max(0,r.service)/100,wealth=Math.max(0,r.economy)/100,stability=Math.max(.25,r.stability/100),population=Math.max(0,r.population);
@@ -143,7 +153,7 @@ async function aiTurn(){
   if(!borders.length||a.troops<100)continue;
   const target=borders.sort((x,y)=>{const vx=x.economy*.12+x.population*.015+x.industry*.22+x.agriculture*.08+x.service*.06,vy=y.economy*.12+y.population*.015+y.industry*.22+y.agriculture*.08+y.service*.06;return (strength(x)-vx*.025)-(strength(y)-vy*.025);})[0],ratio=strength(a)/(strength(target)+1);
   if(ratio<=1.08||Math.random()>=Math.min(.38,.10+(ratio-1.08)*.16))continue;
-  const dispatch=Math.max(1,Math.ceil(a.troops*.16));await animateMarch(a.id,target.id,dispatch);
+  const dispatch=dispatchFor(a);await animateMarch(a.id,target.id,dispatch);
   const outcome=resolveBattle(a,target,Math.random(),dispatch);
   if(outcome.won)log(state.regions[owner].name+"国が"+target.name+"を制圧。"+target.name+"は"+state.regions[owner].name+"国に編入（旧所属："+state.regions[outcome.previousOwner].name+"国）。");
   else log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");
@@ -168,8 +178,15 @@ function runSelfTests(){
  catch(e){failures.push("連合検査 "+e.message);}
  finally{state.alliances=oldAlliances;state.regions[3].owner=oldOwner3;}
  const attacker={owner:1,troops:100,economy:100,industry:60,agriculture:50,service:50},defender={owner:2,troops:80,economy:80,industry:50,agriculture:50,service:50};
- const win=resolveBattle({...attacker},defender,0,10);check(win.won&&defender.owner===1,"戦闘成功時の領土移転");
- const attacker2={...attacker},defender2={...defender,owner:2};const loss=resolveBattle(attacker2,defender2,1,10);check(!loss.won&&defender2.owner===2,"戦闘失敗時の領土維持");
+ const winAttacker={...attacker},winDefender={...defender},win=resolveBattle(winAttacker,winDefender,0,18);
+ check(win.won&&winDefender.owner===1,"戦闘成功時の領土移転");
+ check(winAttacker.troops===82&&win.attackerLost===18,"成功時の派遣兵力は一度だけ消費");
+ check(winDefender.troops===28&&win.defendersLost===52,"成功時の防衛側損耗の整合性");
+ const lossAttacker={...attacker},lossDefender={...defender},loss=resolveBattle(lossAttacker,lossDefender,1,18);
+ check(!loss.won&&lossDefender.owner===2,"戦闘失敗時の領土維持");
+ check(lossAttacker.troops===70&&loss.attackerLost===30,"失敗時の兵力消費は派遣分＋追加損耗のみ");
+ check(lossDefender.troops===70&&loss.defendersLost===10,"失敗時の防衛側損耗の整合性");
+ check(dispatchFor(attacker)===dispatchFor({...attacker}),"プレイヤー・AI共通の派遣兵力算出");
  try{validateSave({version:3,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,regions:state.regions});check(true,"セーブ形式検査");}catch(e){failures.push("有効なセーブ検査 "+e.message);}
  if(failures.length)log("開発者検査で問題："+failures.slice(0,8).join(" / "));else log("内部検査完了：47県・隣接・移送経路・戦闘結果・セーブ形式を確認。");
  return failures;

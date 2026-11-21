@@ -122,9 +122,9 @@ function growth(r){
  const economyRate=Math.min(.009,.0012+ind*.0018+svc*.0018+ag*.0011+Math.min(1,population/10000)*.00035);
  r.population+=Math.max(2,Math.floor(population*populationRate));
  r.economy+=Math.max(2,Math.floor(r.economy*economyRate));
- r.agriculture=Math.min(160,r.agriculture+Math.max(.025,ag*.008+wealth*.002+svc*.001+Math.random()*.004));
- r.industry=Math.min(160,r.industry+Math.max(.025,ind*.008+wealth*.003+svc*.0015+Math.random()*.004));
- r.service=Math.min(160,r.service+Math.max(.025,svc*.008+wealth*.002+ind*.0015+Math.random()*.004));
+ r.agriculture=Math.min(160,r.agriculture+Math.max(.04,ag*.008+wealth*.002+svc*.001+Math.random()*.004));
+ r.industry=Math.min(160,r.industry+Math.max(.04,ind*.008+wealth*.003+svc*.0015+Math.random()*.004));
+ r.service=Math.min(160,r.service+Math.max(.04,svc*.008+wealth*.002+ind*.0015+Math.random()*.004));
  r.troops+=Math.max(1,Math.floor((r.economy*.006+r.industry*.10+r.population*.0005)*stability));
  r.stability=Math.min(100,r.stability+.7+svc*.008);
 }

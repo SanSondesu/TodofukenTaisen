@@ -57,7 +57,7 @@ function setZoom(value){
  else if(state.zoom>old){state.panX*=state.zoom/old;state.panY*=state.zoom/old;}
  applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";
 }
-function territoryBonus(owner){const count=Object.values(state.regions).filter(r=>r.owner===owner).length;return Math.floor(count/5)*10;}
+function territoryBonus(owner){const count=Object.values(state.regions).filter(r=>r.owner===owner).length;return Math.min(24,Math.floor(count/5)*3);}
 function awardTerritoryBonus(owner){
  const bonus=territoryBonus(owner);if(!bonus)return 0;
  const owned=Object.values(state.regions).filter(r=>r.owner===owner).sort((a,b)=>a.id-b.id);
@@ -122,10 +122,10 @@ function growth(r){
  const economyRate=Math.min(.009,.0012+ind*.0018+svc*.0018+ag*.0011+Math.min(1,population/10000)*.00035);
  r.population+=Math.max(2,Math.floor(population*populationRate));
  r.economy+=Math.max(2,Math.floor(r.economy*economyRate));
- r.agriculture=Math.min(160,r.agriculture+Math.max(.012,ag*.045+wealth*.008+svc*.002+Math.random()*.01));
- r.industry=Math.min(160,r.industry+Math.max(.012,ind*.042+wealth*.012+svc*.004+Math.random()*.01));
- r.service=Math.min(160,r.service+Math.max(.012,svc*.045+wealth*.008+ind*.003+Math.random()*.01));
- r.troops+=Math.max(3,Math.floor((r.economy*.018+r.industry*.3+r.population*.0025)*stability));
+ r.agriculture=Math.min(160,r.agriculture+Math.max(.025,ag*.008+wealth*.002+svc*.001+Math.random()*.004));
+ r.industry=Math.min(160,r.industry+Math.max(.025,ind*.008+wealth*.003+svc*.0015+Math.random()*.004));
+ r.service=Math.min(160,r.service+Math.max(.025,svc*.008+wealth*.002+ind*.0015+Math.random()*.004));
+ r.troops+=Math.max(1,Math.floor((r.economy*.006+r.industry*.10+r.population*.0005)*stability));
  r.stability=Math.min(100,r.stability+.7+svc*.008);
 }
 function allianceAid(owner){
@@ -133,7 +133,7 @@ function allianceAid(owner){
  const regions=Object.values(state.regions).filter(r=>partners.includes(r.owner));
  if(!regions.length)return {troops:0,economy:0};
  const totalTroops=regions.reduce((sum,r)=>sum+r.troops,0),totalEconomy=regions.reduce((sum,r)=>sum+r.economy,0);
- return {troops:Math.min(25,Math.max(3,Math.floor(totalTroops*.006))),economy:Math.min(12,Math.max(1,Math.floor(totalEconomy*.004)))};
+ return {troops:Math.min(12,Math.max(2,Math.floor(totalTroops*.003))),economy:Math.min(6,Math.max(1,Math.floor(totalEconomy*.002)))};
 }
 function applyAllianceAid(owner){
  const aid=allianceAid(owner);if(!aid.troops&&!aid.economy)return;
@@ -147,12 +147,13 @@ async function aiTurn(){
  const nations=[...new Set(Object.values(state.regions).map(r=>r.owner).filter(owner=>owner!==state.player))];
  for(const owner of nations){
   const owned=Object.values(state.regions).filter(r=>r.owner===owner);if(!owned.length)continue;owned.forEach(growth);applyAllianceAid(owner);const bonus=awardTerritoryBonus(owner);if(bonus)log(state.regions[owner].name+"国に領土ボーナス +"+bonus+"兵力（"+owned.length+"県を支配）。");
-  const sources=owned.filter(a=>neighbors(a.id).some(n=>state.regions[n].owner!==owner));if(!sources.length)continue;
-  const a=sources.sort((x,y)=>strength(y)-strength(x))[0];
-  const borders=neighbors(a.id).map(id=>state.regions[id]).filter(r=>r.owner!==owner&&!isAllied(owner,r.owner));
-  if(!borders.length||a.troops<100)continue;
-  const target=borders.sort((x,y)=>{const vx=x.economy*.12+x.population*.015+x.industry*.22+x.agriculture*.08+x.service*.06,vy=y.economy*.12+y.population*.015+y.industry*.22+y.agriculture*.08+y.service*.06;return (strength(x)-vx*.025)-(strength(y)-vy*.025);})[0],ratio=strength(a)/(strength(target)+1);
-  if(ratio<=1.08||Math.random()>=Math.min(.38,.10+(ratio-1.08)*.16))continue;
+  const options=owned.filter(a=>a.troops>=45).flatMap(a=>neighbors(a.id)
+   .map(id=>state.regions[id]).filter(r=>r&&r.owner!==owner&&!isAllied(owner,r.owner))
+   .map(target=>{const ratio=strength(a)/(strength(target)+1),value=target.economy*.12+target.population*.015+target.industry*.22+target.agriculture*.08+target.service*.06;return {a,target,ratio,score:ratio+value*.00018};}));
+  if(!options.length)continue;
+  options.sort((x,y)=>y.score-x.score);
+  const {a,target,ratio}=options[0];
+  if(ratio<=1.12||Math.random()>=Math.min(.32,.07+(ratio-1.12)*.14))continue;
   const dispatch=dispatchFor(a);await animateMarch(a.id,target.id,dispatch);
   const outcome=resolveBattle(a,target,Math.random(),dispatch);
   if(outcome.won)log(state.regions[owner].name+"国が"+target.name+"を制圧。"+target.name+"は"+state.regions[owner].name+"国に編入（旧所属："+state.regions[outcome.previousOwner].name+"国）。");
@@ -174,7 +175,7 @@ function runSelfTests(){
  }catch(e){failures.push("移送経路検査 "+e.message);}
  finally{state.player=oldPlayer;for(const [id,owner] of Object.entries(owners))state.regions[id].owner=owner;}
  const oldAlliances=state.alliances,oldOwner3=state.regions[3].owner;
- try{state.alliances=[{a:1,b:2,formedTurn:1,exitTurn:null}];state.regions[3].owner=2;check(isAllied(1,2)&&!isAllied(1,3),"連合関係判定");check(alliedSupport(1,4)>0,"隣接連合国の戦闘支援");const aid=allianceAid(1);check(aid.troops>=3&&aid.troops<=25&&aid.economy>=1&&aid.economy<=12,"連合国の毎ターン支援量");}
+ try{state.alliances=[{a:1,b:2,formedTurn:1,exitTurn:null}];state.regions[3].owner=2;check(isAllied(1,2)&&!isAllied(1,3),"連合関係判定");check(alliedSupport(1,4)>0,"隣接連合国の戦闘支援");const aid=allianceAid(1);check(aid.troops>=2&&aid.troops<=12&&aid.economy>=1&&aid.economy<=6,"連合国の毎ターン支援量");}
  catch(e){failures.push("連合検査 "+e.message);}
  finally{state.alliances=oldAlliances;state.regions[3].owner=oldOwner3;}
  const attacker={owner:1,troops:100,economy:100,industry:60,agriculture:50,service:50},defender={owner:2,troops:80,economy:80,industry:50,agriculture:50,service:50};

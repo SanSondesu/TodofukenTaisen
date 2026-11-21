@@ -31,5 +31,6 @@ const SPECIAL=[
 {a:35,b:40,label:"関門橋・関門トンネル",type:"bridge",enabled:true},
 {a:35,b:44,label:"周防灘フェリー（徳山～竹田津）",type:"ferry",enabled:true},
 {a:38,b:44,label:"四国～九州フェリー（八幡浜～臼杵・別府方面）",type:"ferry",enabled:true},
-{a:42,b:43,label:"島原～熊本フェリー",type:"ferry",enabled:true}
+{a:42,b:43,label:"島原～熊本フェリー",type:"ferry",enabled:true},
+{a:46,b:47,label:"鹿児島～沖縄航路（フェリー）",type:"ferry",enabled:true}
 ];

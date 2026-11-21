@@ -178,6 +178,18 @@ function runSelfTests(){
  try{state.alliances=[{a:1,b:2,formedTurn:1,exitTurn:null}];state.regions[3].owner=2;check(isAllied(1,2)&&!isAllied(1,3),"連合関係判定");check(alliedSupport(1,4)>0,"隣接連合国の戦闘支援");const aid=allianceAid(1);check(aid.troops>=2&&aid.troops<=12&&aid.economy>=1&&aid.economy<=6,"連合国の毎ターン支援量");}
  catch(e){failures.push("連合検査 "+e.message);}
  finally{state.alliances=oldAlliances;state.regions[3].owner=oldOwner3;}
+ const originalOwners={...owners};
+ try{
+  Object.values(state.regions).forEach(r=>r.owner=2);
+  for(let id=1;id<=4;id++)state.regions[id].owner=1;
+  check(territoryBonus(1)===0,"4県以下は領土ボーナスなし");
+  state.regions[5].owner=1;check(territoryBonus(1)===3,"5県で領土ボーナス+3");
+  Object.values(state.regions).forEach(r=>r.owner=1);check(territoryBonus(1)===24,"47県でも領土ボーナス上限24");
+ }catch(e){failures.push("領土ボーナス検査 "+e.message);}
+ finally{for(const [id,owner] of Object.entries(originalOwners))state.regions[id].owner=owner;}
+ const growthSample={population:500,economy:150,agriculture:60,industry:55,service:50,troops:200,stability:70};
+ const growthBefore={...growthSample};growth(growthSample);
+ check(growthSample.troops-growthBefore.troops>=1&&growthSample.troops-growthBefore.troops<=10,"兵力成長の過剰増加防止");
  const attacker={owner:1,troops:100,economy:100,industry:60,agriculture:50,service:50},defender={owner:2,troops:80,economy:80,industry:50,agriculture:50,service:50};
  const winAttacker={...attacker},winDefender={...defender},win=resolveBattle(winAttacker,winDefender,0,18);
  check(win.won&&winDefender.owner===1,"戦闘成功時の領土移転");

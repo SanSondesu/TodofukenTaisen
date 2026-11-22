@@ -93,39 +93,30 @@ async function loadMap(){
  const fallback=document.createElement("div");fallback.className="fallback";fallback.textContent="日本地図を読み込めませんでした。通信環境を確認して、ページを再読み込みしてください。（"+(lastError?.message||"不明なエラー")+"）";const map=$("map"),controls=map.querySelector(".map-controls");map.querySelectorAll("svg,.fallback").forEach(el=>el.remove());map.insertBefore(fallback,controls?controls.nextSibling:null);
 }
 function begin(){if(state.started)return;state.started=true;state.status="active";state.player=state.selected;state.regions[state.player].owner=state.player;log(state.regions[state.player].name+"を選び、天下統一への歩みを始めた。");render();}
-let conquestAudioContext=null;
-function prepareConquestAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;if(!conquestAudioContext)conquestAudioContext=new AC();if(conquestAudioContext.state==="suspended")conquestAudioContext.resume().catch(()=>{});return conquestAudioContext;}catch(e){return null;}}
-function playConquestSound(){
- const ctx=prepareConquestAudio();if(!ctx)return;
- const start=ctx.currentTime+.10;
- // 「どんっ！どどどん！」の四打。低音の胴鳴り＋高めの皮のアタックで和太鼓らしさを出す。
- const hits=[
-  {at:.00,power:1.00,tail:.58},
-  {at:.68,power:.72,tail:.34},
-  {at:.84,power:.78,tail:.36},
-  {at:1.08,power:1.18,tail:.72}
- ];
- hits.forEach((hit,index)=>{
-  const at=start+hit.at;
-  const body=ctx.createOscillator(),bodyGain=ctx.createGain();
-  body.type="sine";
-  body.frequency.setValueAtTime(index===3?92:84,at);
-  body.frequency.exponentialRampToValueAtTime(index===3?39:43,at+.19);
-  bodyGain.gain.setValueAtTime(.0001,at);
-  bodyGain.gain.exponentialRampToValueAtTime(.34*hit.power,at+.012);
-  bodyGain.gain.exponentialRampToValueAtTime(.0001,at+hit.tail);
-  body.connect(bodyGain);bodyGain.connect(ctx.destination);
-  body.start(at);body.stop(at+hit.tail+.02);
-  const skin=ctx.createOscillator(),skinGain=ctx.createGain();
-  skin.type="triangle";
-  skin.frequency.setValueAtTime(190,at);
-  skin.frequency.exponentialRampToValueAtTime(78,at+.075);
-  skinGain.gain.setValueAtTime(.0001,at);
-  skinGain.gain.exponentialRampToValueAtTime(.105*hit.power,at+.006);
-  skinGain.gain.exponentialRampToValueAtTime(.0001,at+.105);
-  skin.connect(skinGain);skinGain.connect(ctx.destination);
-  skin.start(at);skin.stop(at+.12);
- });
+let conquestAudioContext=null,conquestSoundBufferPromise=null;
+function prepareConquestAudio(){
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+  if(!conquestAudioContext)conquestAudioContext=new AC();
+  if(conquestAudioContext.state==="suspended")conquestAudioContext.resume().catch(()=>{});
+  if(!conquestSoundBufferPromise){
+   conquestSoundBufferPromise=fetch("./assets/conquest-victory.mp3")
+    .then(response=>{if(!response.ok)throw Error("勝利音声を読み込めません（HTTP "+response.status+"）");return response.arrayBuffer();})
+    .then(data=>conquestAudioContext.decodeAudioData(data))
+    .catch(error=>{console.warn("征服勝利音の読み込みに失敗:",error);conquestSoundBufferPromise=null;return null;});
+  }
+  return conquestAudioContext;
+ }catch(e){console.warn("音声機能を初期化できません:",e);return null;}
+}
+async function playConquestSound(){
+ const ctx=prepareConquestAudio();if(!ctx)return 0;
+ try{
+  const buffer=await conquestSoundBufferPromise;if(!buffer)return 0;
+  const source=ctx.createBufferSource();source.buffer=buffer;source.connect(ctx.destination);
+  if(ctx.state==="suspended")await ctx.resume();
+  source.start(ctx.currentTime+.02);
+  return buffer.duration;
+ }catch(e){console.warn("征服勝利音を再生できません:",e);return 0;}
 }
 async function attack(){
  if(state.busy)return;prepareConquestAudio();const plan=attackPlan();if(!plan){log("選択した県から進攻できる隣接国がありません。自国領または隣接する敵国を選んでください。");return;}
@@ -194,7 +185,7 @@ async function aiTurn(){
   else log(state.regions[owner].name+"国の"+target.name+"への進攻は失敗。双方が兵力を消耗。");
  }
 }
-function showConquest(name){const overlay=$("conquest-overlay"),title=$("conquest-title");if(!overlay||!title)return;playConquestSound();title.textContent="征服完了";overlay.classList.remove("hidden","leaving");overlay.setAttribute("aria-label",name+"を制圧。征服完了");const scroll=$("conquest-scroll");scroll.style.animation="none";void scroll.offsetWidth;scroll.style.animation="";clearTimeout(showConquest.timer);showConquest.timer=setTimeout(()=>{overlay.classList.add("leaving");setTimeout(()=>{overlay.classList.add("hidden");overlay.classList.remove("leaving");},360);},2450);}
+async function showConquest(name){const overlay=$("conquest-overlay"),title=$("conquest-title");if(!overlay||!title)return;clearTimeout(showConquest.timer);const duration=await playConquestSound();title.textContent="征服完了";overlay.classList.remove("hidden","leaving");overlay.setAttribute("aria-label",name+"を制圧。征服完了");const scroll=$("conquest-scroll");scroll.style.animation="none";void scroll.offsetWidth;scroll.style.animation="";showConquest.timer=setTimeout(()=>{overlay.classList.add("leaving");setTimeout(()=>{overlay.classList.add("hidden");overlay.classList.remove("leaving");},360);},Math.max(2450,duration*1000+650));}
 function showVictory(){const overlay=$("victory-overlay");if(!overlay)return;const stats=state.stats||{wins:0,losses:0,captures:0},total=stats.wins+stats.losses,rate=total?Math.round(stats.wins/total*100):0;$("victory-turn").textContent="第 "+state.turn+" ターンで全国統一";$("record-territories").textContent=Object.values(state.regions).filter(r=>r.owner===state.player).length+" / 47";$("record-wins").textContent=num(stats.wins)+"回";$("record-losses").textContent=num(stats.losses)+"回";$("record-rate").textContent=total?rate+"%":"戦闘なし";overlay.classList.remove("hidden");}
 async function endTurn(){if(state.busy||!state.started||state.status!=="active")return;state.busy=true;render();Object.values(state.regions).filter(r=>r.owner===state.player).forEach(growth);applyAllianceAid(state.player);const bonus=awardTerritoryBonus(state.player);if(bonus)log(state.regions[state.player].name+"国に領土ボーナス +"+bonus+"兵力（"+Object.values(state.regions).filter(r=>r.owner===state.player).length+"県を支配）。");await aiTurn();state.turn++;processAllianceExits();const mine=Object.values(state.regions).filter(r=>r.owner===state.player).length;if(mine===47){state.status="won";log("全国統一を達成！天下統一です。");}else if(mine===0){state.status="lost";log("自国の領土がなくなった。自国は滅亡した。");}else log("第"+state.turn+"ターン。自国領は"+mine+"県。各国の産業・人口・経済に応じて成長とAI判断が行われた。");state.busy=false;render();if(state.status==="won")showVictory();}
 function runSelfTests(){

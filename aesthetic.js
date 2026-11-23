@@ -4,8 +4,7 @@
  const $=id=>document.getElementById(id);
  const historic={
   4:"独眼竜の地・陸奥",15:"越後の龍",17:"加賀百万石",19:"甲斐の虎",
-  21:"美濃の要衝",14:"相模の獅子",26:"天下の台所",27:"尾張の覇気",
-  28:"近江の水運",31:"出雲の神話",33:"備前の鉄",40:"筑前の要地"
+  21:"美濃の要衝",14:"相模の獅子",25:"近江の水運",27:"天下の台所",28:"摂津の要衝",31:"出雲の神話",33:"備前の鉄",40:"筑前の要地"
  };
  const regionTitles={
   "北海道":"北海の守り","東北":"奥州の雄","関東":"坂東の覇者",
@@ -93,6 +92,14 @@
  if(typeof baseVictory==="function"){
   window.showVictory=function(){baseVictory();document.body.dataset.season=SEASONS[state.seasonIndex]||"春";};
  }
+
+ function closeWithScroll(id,overlayId){
+  const button=$(id),overlay=$(overlayId);if(!button||!overlay)return;
+  button.onclick=()=>{overlay.classList.add("leaving");setTimeout(()=>{overlay.classList.add("hidden");overlay.classList.remove("leaving");},330);};
+ }
+ closeWithScroll("yearly-close","yearly-overlay");
+ closeWithScroll("victory-close","victory-overlay");
+ closeWithScroll("begin","intro");
  addMapDecor();applySeason();
  if(typeof baseRender==="function")window.render();
 })();

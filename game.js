@@ -67,7 +67,7 @@ function resetAnnualRecord(){
  state.yearStartPower=Object.fromEntries(Array.from({length:47},(_,i)=>[i+1,nationalPower(i+1)]));
 }
 function recordCapture(owner){state.annualCaptures=state.annualCaptures||{};state.annualCaptures[owner]=(state.annualCaptures[owner]||0)+1;}
-function recordPowerGrowth(owner,delta){state.annualPowerGrowth=state.annualPowerGrowth||{};state.annualPowerGrowth[owner]=(state.annualPowerGrowth[owner]||0)+delta;}
+function recordPowerGrowth(owner,delta){if(!Number.isInteger(owner)||owner<1||owner>47)return;state.annualPowerGrowth=state.annualPowerGrowth||{};state.annualPowerGrowth[owner]=(state.annualPowerGrowth[owner]||0)+delta;}
 function finalizeYear(){
  const rows=[];
  for(let owner=1;owner<=47;owner++){
@@ -283,7 +283,7 @@ async function aiTurn(){
  }
 }
 function showConquest(name){const overlay=$("conquest-overlay"),title=$("conquest-title");if(!overlay||!title)return;clearTimeout(showConquest.timer);clearTimeout(showConquest.fadeTimer);title.textContent="征服完了";overlay.classList.remove("hidden","leaving");overlay.setAttribute("aria-label",name+"を制圧。征服完了");const scroll=$("conquest-scroll");scroll.style.animation="none";void scroll.offsetWidth;scroll.style.animation="";const hide=ms=>{clearTimeout(showConquest.timer);showConquest.timer=setTimeout(()=>{overlay.classList.add("leaving");showConquest.fadeTimer=setTimeout(()=>{overlay.classList.add("hidden");overlay.classList.remove("leaving");},360);},ms);};hide(3000);playConquestSound().then(duration=>{if(duration>0&&overlay.classList.contains("hidden")===false)hide(Math.max(0,duration*1000-360));}).catch(error=>console.warn("征服演出の音声処理に失敗:",error));}
-function showVictory(){const overlay=$("victory-overlay");if(!overlay)return;const stats=state.stats||{wins:0,losses:0,captures:0},total=stats.wins+stats.losses,rate=total?Math.round(stats.wins/total*100):0;$("victory-turn").textContent="第 "+state.turn+" ターンで全国統一";$("record-territories").textContent=Object.values(state.regions).filter(r=>r.owner===state.player).length+" / 47";$("record-wins").textContent=num(stats.wins)+"回";$("record-losses").textContent=num(stats.losses)+"回";$("record-rate").textContent=total?rate+"%":"戦闘なし";overlay.classList.remove("hidden");}
+function showVictory(){const overlay=$("victory-overlay");if(!overlay)return;const stats=state.stats||{wins:0,losses:0,captures:0},total=stats.wins+stats.losses,rate=total?Math.round(stats.wins/total*100):0;$("victory-turn").textContent="第 "+state.turn+" ターン（第 "+state.year+" 年 "+seasonName()+"）で全国統一";$("record-territories").textContent=Object.values(state.regions).filter(r=>r.owner===state.player).length+" / 47";$("record-wins").textContent=num(stats.wins)+"回";$("record-losses").textContent=num(stats.losses)+"回";$("record-rate").textContent=total?rate+"%":"戦闘なし";overlay.classList.remove("hidden");}
 async function endTurn(){
  if(state.busy||!state.started||state.status!=="active")return;
  state.busy=true;render();
@@ -359,7 +359,9 @@ function load(){try{
  if(!raw)return false;
  s=JSON.parse(raw);if(![2,3,4].includes(s.version||2))throw Error("非対応バージョン");
  validateSave(s);if(!s.status)s.status=s.started?"active":"setup";
+ const legacyCalendar=!Number.isInteger(s.year)||!Number.isInteger(s.seasonIndex);
  Object.assign(state,s,{busy:false,alliances:s.alliances||[],allianceProposals:s.allianceProposals||[],stats:s.stats||{wins:0,losses:0,captures:0}});
+ if(legacyCalendar){state.year=Math.floor((state.turn-1)/4)+1;state.seasonIndex=(state.turn-1)%4;}
  state.year=Number.isInteger(state.year)&&state.year>0?state.year:1;
  state.seasonIndex=Number.isInteger(state.seasonIndex)&&state.seasonIndex>=0&&state.seasonIndex<4?state.seasonIndex:0;
  state.yearlyHistory=Array.isArray(state.yearlyHistory)?state.yearlyHistory:[];

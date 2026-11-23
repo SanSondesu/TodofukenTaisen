@@ -76,6 +76,7 @@
     applySeason();
    }
   };
+  const endButton=$("end");if(endButton)endButton.onclick=window.endTurn;
  }
  const baseRespond=window.respondAllianceProposal;
  if(typeof baseRespond==="function"){

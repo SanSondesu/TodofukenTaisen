@@ -229,7 +229,7 @@ function growth(r){
  const food=Math.max(.15,ag*1.5+svc*.18);
  const populationRate=Math.min(.0045,.00075+food*.0012+ind*.00025+svc*.00035+wealth*.00015);
  const economyRate=Math.min(.009,.0012+ind*.0018+svc*.0018+ag*.0011+Math.min(1,population/10000)*.00035);
- const seasonalEconomy=state.seasonIndex===2?1.08:state.seasonIndex===0?1.03:state.seasonIndex===3&&SNOW_REGIONS.has(r.id)?.94:1;
+ const seasonalEconomy=state.seasonIndex===2?1.08:state.seasonIndex===0?1.03:state.seasonIndex===3&&SNOW_REGIONS.has(r.id) ? .94 : 1;
  const agricultureSeason=state.seasonIndex===0?1.2:state.seasonIndex===1?1.12:state.seasonIndex===2?1.3:.78;
  r.population+=Math.max(2,Math.floor(population*populationRate));
  r.economy+=Math.max(2,Math.floor(r.economy*economyRate*seasonalEconomy));

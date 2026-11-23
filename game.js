@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id),num=n=>Math.round(n).toLocaleString("ja-
 const SAVE_KEY="todofukenTaisenSaveV4";
 const LEGACY_SAVE_KEYS=["todofukenTaisenSaveV3","todofukenTaisenSaveV2"];
 const SEASONS=["春","夏","秋","冬"];
-const state={selected:14,player:null,started:false,status:"setup",turn:1,year:1,seasonIndex:0,yearStartPower:{},annualCaptures:{},yearlyHistory:[],regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0,alliances:[],allianceProposals:[],allianceExitRequests:[],stats:{wins:0,losses:0,captures:0}};
+const state={selected:14,player:null,started:false,status:"setup",turn:1,year:1,seasonIndex:0,yearStartPower:{},annualCaptures:{},annualPowerGrowth:{},yearlyHistory:[],regions:{},logs:[],specialEnabled:false,busy:false,zoom:1,panX:0,panY:0,alliances:[],allianceProposals:[],allianceExitRequests:[],stats:{wins:0,losses:0,captures:0}};
 PREFS.forEach((p,i)=>{const [name,region,pop,ag,ind,svc]=p,id=i+1;state.regions[id]={id,name,region,population:pop*10,agriculture:ag,industry:ind,service:svc,economy:Math.round(pop*1.5+ag*.35+ind*.55+svc*.65),troops:Math.round(90+pop*5+ind*2),owner:id,stability:70};});
 function neighbors(id,includeSpecial=true){const out=[...(LAND[id]||[])];if(includeSpecial)for(const e of SPECIAL)if(e.enabled){if(e.a===id)out.push(e.b);if(e.b===id)out.push(e.a);}return [...new Set(out)];}
 function isAllied(a,b){return a!==b&&state.alliances.some(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a));}
@@ -63,15 +63,17 @@ function battleFailureLog(from,target){
 function nationalPower(owner){return Object.values(state.regions).filter(r=>r.owner===owner).reduce((sum,r)=>sum+strength(r),0);}
 function resetAnnualRecord(){
  state.annualCaptures=Object.fromEntries(Array.from({length:47},(_,i)=>[i+1,0]));
+ state.annualPowerGrowth=Object.fromEntries(Array.from({length:47},(_,i)=>[i+1,0]));
  state.yearStartPower=Object.fromEntries(Array.from({length:47},(_,i)=>[i+1,nationalPower(i+1)]));
 }
 function recordCapture(owner){state.annualCaptures=state.annualCaptures||{};state.annualCaptures[owner]=(state.annualCaptures[owner]||0)+1;}
+function recordPowerGrowth(owner,delta){state.annualPowerGrowth=state.annualPowerGrowth||{};state.annualPowerGrowth[owner]=(state.annualPowerGrowth[owner]||0)+delta;}
 function finalizeYear(){
  const rows=[];
  for(let owner=1;owner<=47;owner++){
   const territories=Object.values(state.regions).filter(r=>r.owner===owner).length;
   const captures=Number(state.annualCaptures?.[owner]||0);
-  const growth=nationalPower(owner)-Number(state.yearStartPower?.[owner]||0);
+  const growth=Number(state.annualPowerGrowth?.[owner]||0);
   if(territories||captures)rows.push({owner,name:state.regions[owner].name,captures,growth:Math.round(growth),territories});
  }
  const captureRanking=[...rows].sort((a,b)=>b.captures-a.captures||b.territories-a.territories||a.owner-b.owner);
@@ -81,14 +83,21 @@ function finalizeYear(){
  state.yearlyHistory.push(report);state.yearlyHistory=state.yearlyHistory.slice(-20);
  return report;
 }
-function showYearlyRanking(report){
- const overlay=$("yearly-overlay");if(!overlay||!report)return;
+function showYearlyRanking(report,chronicle=false){
+ const overlay=$("yearly-overlay");if(!overlay)return;
+ if(!report){$("yearly-title").textContent="戦国年代記";$("ranking-captures").textContent="年間記録はまだありません。";$("ranking-growth").textContent="最初の冬を終えると、年間ランキングが記録されます。";}else{
  const renderList=(id,rows,key,suffix)=>{const el=$(id);el.replaceChildren();if(!rows.length){el.textContent="該当する国はありません。";return;}rows.forEach((r,i)=>{const p=document.createElement("p");p.className="ranking-row";const rank=document.createElement("b");rank.textContent=(i+1)+"位";const name=document.createElement("span");name.textContent=r.name;const value=document.createElement("strong");value.textContent=num(r[key])+suffix;p.append(rank,name,value);el.append(p);});};
- $("yearly-title").textContent="第"+report.year+"年・年間戦績";
+ $("yearly-title").textContent=(chronicle?"戦国年代記 — ":"")+"第"+report.year+"年・年間戦績";
  renderList("ranking-captures",report.captureRanking,"captures","県");
  renderList("ranking-growth",report.growthRanking,"growth"," pt");
+ }
+ const history=$("yearly-history");history.replaceChildren();
+ const past=[...(state.yearlyHistory||[])].reverse();
+ if(!past.length){const empty=document.createElement("p");empty.className="small";empty.textContent="過去の年間記録はまだありません。";history.append(empty);}
+ else past.forEach(item=>{const row=document.createElement("p");row.className="history-row";const year=document.createElement("b");year.textContent="第"+item.year+"年";const cap=item.captureRanking?.[0],growth=item.growthRanking?.[0];const detail=document.createElement("span");detail.textContent="征服数："+(cap?cap.name+" "+cap.captures+"県":"該当なし")+" ／ 国力成長："+(growth?growth.name+" +"+num(growth.growth):"該当なし");row.append(year,detail);history.append(row);});
  overlay.classList.remove("hidden");
 }
+function showChronicle(){const latest=(state.yearlyHistory||[]).slice(-1)[0]||null;showYearlyRanking(latest,true);}
 
 function alliancePower(owner){return Object.values(state.regions).filter(r=>r.owner===owner).reduce((sum,r)=>sum+strength(r),0);}
 function sharesThreat(a,b){const threatsA=new Set(Object.values(state.regions).filter(r=>r.owner===a).flatMap(r=>neighbors(r.id).map(id=>state.regions[id]?.owner).filter(o=>o&&o!==a&&!isAllied(a,o))));return Object.values(state.regions).some(r=>r.owner===b&&neighbors(r.id).some(id=>threatsA.has(state.regions[id]?.owner)));}
@@ -225,6 +234,7 @@ function resolveBattle(from,target,roll=Math.random(),dispatch=dispatchFor(from)
  return {won:false,chance,previousOwner,dispatch,attackerLost:attackerBefore-from.troops,defendersLost:defenderBefore-target.troops};
 }
 function growth(r){
+ const powerBefore=strength(r);
  const ag=Math.max(0,r.agriculture)/100,ind=Math.max(0,r.industry)/100,svc=Math.max(0,r.service)/100,wealth=Math.max(0,r.economy)/100,stability=Math.max(.25,r.stability/100),population=Math.max(0,r.population);
  const food=Math.max(.15,ag*1.5+svc*.18);
  const populationRate=Math.min(.0045,.00075+food*.0012+ind*.00025+svc*.00035+wealth*.00015);
@@ -238,6 +248,7 @@ function growth(r){
  r.service=Math.min(160,r.service+Math.max(.04,svc*.008+wealth*.002+ind*.0015+Math.random()*.004));
  r.troops+=Math.max(1,Math.floor((r.economy*.006+r.industry*.10+r.population*.0005)*stability));
  r.stability=Math.min(100,r.stability+.7+svc*.008);
+ recordPowerGrowth(r.owner,strength(r)-powerBefore);
 }
 function allianceAid(owner){
  const partners=state.alliances.map(a=>a.a===owner?a.b:a.b===owner?a.a:null).filter(Boolean);
@@ -340,7 +351,7 @@ function runSelfTests(){
  if(failures.length)log("開発者検査で問題："+failures.slice(0,8).join(" / "));else log("内部検査完了：47県・隣接・移送経路・戦闘結果・セーブ形式を確認。");
  return failures;
 }
-function save(){try{const snapshot={version:4,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,year:state.year,seasonIndex:state.seasonIndex,yearStartPower:state.yearStartPower,annualCaptures:state.annualCaptures,yearlyHistory:state.yearlyHistory,regions:state.regions,logs:state.logs,specialEnabled:state.specialEnabled,alliances:state.alliances,allianceProposals:state.allianceProposals,stats:state.stats||{wins:0,losses:0,captures:0}};localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));log("進行状況を保存した（"+state.year+"年 "+seasonName()+"）。");}catch(e){log("保存できませんでした。端末の空き容量やブラウザ設定を確認してください。");}}
+function save(){try{const snapshot={version:4,selected:state.selected,player:state.player,started:state.started,status:state.status,turn:state.turn,year:state.year,seasonIndex:state.seasonIndex,yearStartPower:state.yearStartPower,annualCaptures:state.annualCaptures,annualPowerGrowth:state.annualPowerGrowth,yearlyHistory:state.yearlyHistory,regions:state.regions,logs:state.logs,specialEnabled:state.specialEnabled,alliances:state.alliances,allianceProposals:state.allianceProposals,stats:state.stats||{wins:0,losses:0,captures:0}};localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));log("進行状況を保存した（"+state.year+"年 "+seasonName()+"）。");}catch(e){log("保存できませんでした。端末の空き容量やブラウザ設定を確認してください。");}}
 function validateSave(s){if(!s||!s.regions||Object.keys(s.regions).length!==47)throw Error("県データ数が不正");for(let id=1;id<=47;id++){const r=s.regions[id];if(!r||r.id!==id||r.name!==PREFS[id-1][0]||!Number.isInteger(r.owner)||r.owner<1||r.owner>47)throw Error("県データが不正");for(const k of ["population","economy","agriculture","industry","service","troops","stability"])if(!Number.isFinite(r[k])||r[k]<0||r[k]>100000000)throw Error("数値データが不正");}if(!Number.isInteger(s.turn)||s.turn<1||!Number.isInteger(s.selected)||s.selected<1||s.selected>47)throw Error("進行情報が不正");if(s.year!==undefined&&(!Number.isInteger(s.year)||s.year<1))throw Error("年情報が不正");if(s.seasonIndex!==undefined&&(!Number.isInteger(s.seasonIndex)||s.seasonIndex<0||s.seasonIndex>3))throw Error("季節情報が不正");if(s.started&&(!Number.isInteger(s.player)||s.player<1||s.player>47))throw Error("プレイヤー情報が不正");if(!["setup","active","won","lost",undefined].includes(s.status))throw Error("ゲーム状態が不正");for(const a of (s.alliances||[]))if(!Number.isInteger(a.a)||!Number.isInteger(a.b)||a.a<1||a.a>47||a.b<1||a.b>47||a.a===a.b)throw Error("連合データが不正");for(const p of (s.allianceProposals||[]))if(!Number.isInteger(p.from)||!Number.isInteger(p.to)||p.from<1||p.from>47||p.to<1||p.to>47||p.from===p.to)throw Error("連合申出データが不正");}
 function load(){try{
  let raw=localStorage.getItem(SAVE_KEY),s,legacy=false;
@@ -353,8 +364,9 @@ function load(){try{
  state.seasonIndex=Number.isInteger(state.seasonIndex)&&state.seasonIndex>=0&&state.seasonIndex<4?state.seasonIndex:0;
  state.yearlyHistory=Array.isArray(state.yearlyHistory)?state.yearlyHistory:[];
  state.annualCaptures=state.annualCaptures&&typeof state.annualCaptures==="object"?state.annualCaptures:{};
+ state.annualPowerGrowth=state.annualPowerGrowth&&typeof state.annualPowerGrowth==="object"?state.annualPowerGrowth:{};
  state.yearStartPower=state.yearStartPower&&typeof state.yearStartPower==="object"?state.yearStartPower:{};
- if(!Object.keys(state.yearStartPower).length)resetAnnualRecord();
+ if(!Object.keys(state.yearStartPower).length||!Object.keys(state.annualPowerGrowth).length)resetAnnualRecord();
  if(legacy)log("旧バージョンのセーブを引き継ぎました。季節・年間記録を追加し、新形式で保存できます。");
  return true;
  }catch(e){log("セーブデータが破損または非対応のため読み込めませんでした。既存データは自動削除していません。");return false;}}
@@ -385,7 +397,7 @@ mapViewport.addEventListener("touchstart",e=>{if(e.touches.length===1){singleTou
 mapViewport.addEventListener("touchmove",e=>{if(!pinch||e.touches.length!==2)return;e.preventDefault();const rect=mapViewport.getBoundingClientRect(),ratio=touchDistance(e.touches)/Math.max(1,pinch.distance),next=Math.max(1,Math.min(2.8,pinch.zoom*ratio)),scale=next/pinch.zoom;const midX=(e.touches[0].clientX+e.touches[1].clientX)/2,midY=(e.touches[0].clientY+e.touches[1].clientY)/2,x=midX-rect.left-rect.width/2,y=midY-rect.top-rect.height/2;state.zoom=next;state.panX=x-(pinch.x-pinch.panX)*scale;state.panY=y-(pinch.y-pinch.panY)*scale;applyMapTransform();$("zoom-label").textContent=Math.round(state.zoom*100)+"%";},{passive:false});
 mapViewport.addEventListener("touchmove",e=>{if(pinch||!singleTouch||state.zoom<=1.001||e.touches.length!==1)return;const t=[...e.touches].find(t=>t.identifier===singleTouch.id);if(!t)return;const dx=t.clientX-singleTouch.x,dy=t.clientY-singleTouch.y;if(Math.abs(dx)+Math.abs(dy)>5)singleTouch.moved=true;if(singleTouch.moved){e.preventDefault();state.panX=singleTouch.startX+dx;state.panY=singleTouch.startY+dy;applyMapTransform();}},{passive:false});
 mapViewport.addEventListener("touchend",e=>{if(e.touches.length<2)pinch=null;if(singleTouch&&![...e.changedTouches].some(t=>t.identifier===singleTouch.id))return;if(singleTouch){if(singleTouch.moved){suppressMapClick=true;setTimeout(()=>{suppressMapClick=false;},450);}singleTouch=null;}},{passive:true});mapViewport.addEventListener("touchcancel",()=>{pinch=null;singleTouch=null;},{passive:true});
-window.addEventListener("resize",applyMapTransform);$("victory-close").onclick=()=>$("victory-overlay").classList.add("hidden");$("yearly-close").onclick=()=>$("yearly-overlay").classList.add("hidden");$("victory-reset").onclick=()=>$("reset").click();$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem(SAVE_KEY);LEGACY_SAVE_KEYS.forEach(key=>localStorage.removeItem(key));location.reload();}};
+window.addEventListener("resize",applyMapTransform);$("victory-close").onclick=()=>$("victory-overlay").classList.add("hidden");$("yearly-close").onclick=()=>$("yearly-overlay").classList.add("hidden");$("chronicle-open").onclick=showChronicle;$("victory-reset").onclick=()=>$("reset").click();$("begin").onclick=()=>$("intro").classList.add("hidden");$("start").onclick=begin;$("attack").onclick=attack;$("end").onclick=endTurn;$("save").onclick=save;$("reset").onclick=()=>{if(confirm("最初からやり直しますか？")){localStorage.removeItem(SAVE_KEY);LEGACY_SAVE_KEYS.forEach(key=>localStorage.removeItem(key));location.reload();}};
 if(load()){log("保存データを読み込んだ。");if(state.started)$("intro").classList.add("hidden");}
 try{validateWorld();}catch(e){log("内部データ検証エラー："+e.message);}
 runSelfTests();render();if(state.status==="won")showVictory();loadMap();

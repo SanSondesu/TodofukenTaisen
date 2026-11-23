@@ -3,25 +3,24 @@
  "use strict";
  const $=id=>document.getElementById(id);
  const historic={
-  4:"独眼竜の地・陸奥",15:"越後の龍",17:"加賀百万石",19:"甲斐の虎",
-  21:"美濃の要衝",14:"相模の獅子",25:"近江の水運",27:"天下の台所",28:"摂津の要衝",31:"出雲の神話",33:"備前の鉄",40:"筑前の要地"
- };
- const regionTitles={
-  "北海道":"北海の守り","東北":"奥州の雄","関東":"坂東の覇者",
-  "中部":"山河の要衝","近畿":"畿内の威勢","中国":"西国の要",
-  "四国":"瀬戸内の堅城","九州":"西海の雄"
+  1:"北辰の大地",2:"津軽海峡の北門",3:"南部の山河",4:"杜の都と仙台湾",5:"秋田杉と雪国",6:"出羽三山の霊峰",7:"会津磐梯の山嶺",
+  8:"常陸の沃野",9:"日光連山の社寺",10:"上州三山の要害",11:"武蔵野の平原",12:"房総の黒潮",13:"江戸城下の中枢",14:"箱根と相模湾",
+  15:"越後の米蔵",16:"立山連峰の雪嶺",17:"加賀百万石の雅",18:"越前和紙と若狭の海",19:"甲斐の山岳",20:"信濃の高嶺",21:"飛騨美濃の山城",
+  22:"富士を望む駿河湾",23:"尾張三河のものづくり",24:"伊勢神宮と熊野古道",25:"琵琶湖の水運",26:"千年の都",27:"天下の台所",28:"摂津播磨を結ぶ港",29:"大和の古都",30:"紀伊山地と熊野",
+  31:"鳥取砂丘と山陰の海",32:"出雲神話の国",33:"晴れの国・吉備",34:"安芸の瀬戸と厳島",35:"三つの海を抱く西国の門",
+  36:"阿波踊りと吉野川",37:"讃岐のため池と島影",38:"伊予の柑橘と石鎚",39:"土佐の黒潮と山嶺",
+  40:"筑前博多の交易港",41:"佐賀平野と有明の干潟",42:"西海の島々と異国港",43:"阿蘇の火の国",44:"別府湯けむりと豊後水道",45:"日向灘と神話の里",46:"桜島と薩摩の海",47:"琉球の珊瑚島"
  };
  function ownedCount(owner){return Object.values(state.regions).filter(r=>r.owner===owner).length;}
+ function ownedCount(owner){return Object.values(state.regions).filter(r=>r.owner===owner).length;}
  function epithet(r){
-  const owner=r.owner, count=ownedCount(owner), base=historic[r.id];
-  if(base && r.id===owner && count>=1)return base;
-  const home=state.regions[owner]||r;
-  const regional=regionTitles[home.region]||"国境の守り";
-  if(count>=15)return "天下に号令する"+(home.region==="関東"?"東国":"諸国")+"の覇者";
-  if(count>=8)return regional+"・大大名";
-  if(count>=4)return regional+"・有力大名";
-  if(count>=2)return regional+"・若き領主";
-  return base||regional+"・一国の主";
+  const owner=r.owner,count=ownedCount(owner),home=state.regions[owner]||r;
+  const base=historic[home.id]||"諸国の一角";
+  if(count>=15)return base+"・天下に号令する覇者";
+  if(count>=8)return base+"・大大名";
+  if(count>=4)return base+"・有力大名";
+  if(count>=2)return base+"・若き領主";
+  return base+"・一国の主";
  }
  function applySeason(){
   const season=SEASONS[state.seasonIndex]||"春";

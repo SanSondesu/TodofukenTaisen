@@ -52,7 +52,7 @@
    baseConquest(name);
    const kicker=document.querySelector(".conquest-kicker"),title=$("conquest-title");
    if(kicker)kicker.textContent="領土拡大・戦勝の記";
-   if(title)title.textContent=name+"、制圧";
+   if(title)title.textContent=name+" 制圧";
   };
  }
  function showGrandEvent(kickerText,titleText,detail){
@@ -71,7 +71,7 @@
    const beforeYear=state.year,beforeSeason=state.seasonIndex;
    await baseEndTurn();
    if(state.year!==beforeYear){
-    showGrandEvent("年の改まり・戦国年代記","第"+(state.year-1)+"年、終幕","新たな年が始まり、諸国の勢力図が動き出す");
+    showGrandEvent("年の改まり・戦国年代記","第"+(state.year-1)+"年 終幕","新たな年が始まり、諸国の勢力図が動き出す");
    }else if(state.seasonIndex!==beforeSeason){
     applySeason();
    }

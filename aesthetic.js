@@ -191,4 +191,121 @@
  `;
  document.head.append(scrollCorrection);
 
+
+ /* Final scroll treatment: actual vertical parchment sheet with one clear top roller */
+ const finalScrollStyle=document.createElement("style");
+ finalScrollStyle.textContent=`
+ #yearly-overlay .yearly-dialog{
+  box-sizing:border-box!important;position:relative!important;isolation:isolate!important;
+  width:min(620px,calc(100vw - 30px))!important;
+  max-height:88dvh!important;min-height:min(68dvh,620px)!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  margin:18px auto!important;padding:48px 30px 32px!important;
+  border:1px solid #b49a6a!important;border-top:0!important;border-bottom:5px solid #9e8150!important;
+  border-radius:3px!important;
+  background:repeating-linear-gradient(0deg,#81643c0b 0 1px,transparent 1px 5px),linear-gradient(90deg,#e3d0aa 0%,#f8efd9 5%,#f4e9d0 50%,#f8efd9 95%,#e3d0aa 100%)!important;
+  box-shadow:inset 0 0 0 5px #fff8e5a6,inset 0 0 28px #80603924,0 15px 38px #1c140c70!important;
+ }
+ #yearly-overlay .yearly-dialog:before{
+  content:""!important;position:absolute!important;display:block!important;
+  left:-2px!important;right:-2px!important;top:-1px!important;height:29px!important;
+  z-index:8!important;margin:0!important;border:1px solid #49241d!important;border-radius:16px!important;
+  background:
+   radial-gradient(ellipse at 1.5% 50%,#e7c77f 0 2px,#6d3025 3px 8px,#2b1715 9px,transparent 10px),
+   radial-gradient(ellipse at 98.5% 50%,#e7c77f 0 2px,#6d3025 3px 8px,#2b1715 9px,transparent 10px),
+   linear-gradient(180deg,#d49a63 0%,#a64e35 18%,#7c3026 43%,#421e1a 55%,#853728 82%,#c27b4a 100%)!important;
+  box-shadow:inset 0 2px 3px #ffe7b588,inset 0 -4px 5px #1a0d0caa,0 4px 8px #24150f77!important;
+ }
+ #yearly-overlay .yearly-dialog:after{
+  content:""!important;position:absolute!important;pointer-events:none!important;z-index:0!important;
+  left:9px!important;right:9px!important;top:36px!important;bottom:9px!important;
+  border:1px solid #b99b6a77!important;box-shadow:inset 0 0 0 1px #fff8e2aa!important;
+ }
+ #yearly-overlay .yearly-dialog>*{position:relative;z-index:1}
+ #yearly-overlay .yearly-dialog .scroll-cord{
+  position:absolute;z-index:9;right:31px;top:8px;width:3px;height:42px;
+  border-radius:2px;background:linear-gradient(90deg,#261a14,#b28b4d 48%,#342017);
+  box-shadow:1px 2px 3px #0006;pointer-events:none;
+ }
+ #yearly-overlay .yearly-dialog .scroll-cord:before{
+  content:"";position:absolute;left:-9px;top:-3px;width:19px;height:13px;
+  border:2px solid #9d7946;border-radius:50% 50% 45% 45%;
+  background:linear-gradient(180deg,#8e3d2c,#4a211c);box-shadow:0 1px 3px #0007;
+ }
+ #yearly-overlay .yearly-dialog .scroll-cord:after{
+  content:"";position:absolute;left:-6px;bottom:-12px;width:15px;height:18px;
+  background:repeating-linear-gradient(90deg,#6e2820 0 2px,#d2ad6a 2px 3px,#8b3327 3px 5px);
+  clip-path:polygon(8% 0,92% 0,100% 100%,70% 76%,50% 100%,30% 76%,0 100%);
+ }
+ #yearly-overlay:not(.hidden) .yearly-dialog{animation:chronicle-gentle-open .18s ease-out both!important;transform-origin:top center}
+ #yearly-overlay.leaving .yearly-dialog{animation:chronicle-gentle-close .15s ease-in both!important;transform-origin:top center}
+ @keyframes chronicle-gentle-open{from{opacity:.8;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+ @keyframes chronicle-gentle-close{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-2px)}}
+ @media(max-width:560px){
+  #yearly-overlay .yearly-dialog{width:calc(100vw - 20px)!important;max-height:86dvh!important;min-height:70dvh!important;padding:42px 19px 25px!important}
+  #yearly-overlay .yearly-dialog .scroll-cord{right:23px}
+ }
+ @media(prefers-reduced-motion:reduce){#yearly-overlay:not(.hidden) .yearly-dialog,#yearly-overlay.leaving .yearly-dialog{animation:none!important}}
+ /* Four-season map atmosphere; overlays never intercept map input */
+ .map{isolation:isolate}
+ .map:before,.map:after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity 1.1s ease}
+ .map:before{mix-blend-mode:screen}
+ .map:after{mix-blend-mode:multiply}
+ .map[data-season="春"].season-active:before{
+  opacity:.62;background:
+   radial-gradient(ellipse at 12% 18%,#f7b9c866,transparent 33%),
+   radial-gradient(ellipse at 78% 78%,#f5c8b655,transparent 36%),
+   radial-gradient(circle at 15% 24%,#f5b4c9 0 2px,transparent 3px),
+   radial-gradient(circle at 63% 33%,#f8c5d5 0 2px,transparent 3px),
+   radial-gradient(circle at 82% 64%,#f5b4c9 0 2px,transparent 3px);
+  background-size:auto,auto,83px 91px,117px 103px,137px 119px;
+  animation:season-petal-drift 16s linear infinite;
+ }
+ .map[data-season="春"].season-active:after{opacity:.22;background:linear-gradient(135deg,#f5c9d1,#fff0d8 45%,#a9c78c)}
+ .map[data-season="夏"].season-active:before{
+  opacity:.5;background:
+   radial-gradient(ellipse at 78% 8%,#fff4bb99,transparent 38%),
+   radial-gradient(ellipse at 25% 90%,#4e9b6940,transparent 45%);
+ }
+ .map[data-season="夏"].season-active:after{opacity:.24;background:linear-gradient(145deg,#8dc7d0,#fff3bd 48%,#559b6b);animation:summer-glow 8s ease-in-out infinite alternate}
+ .map[data-season="秋"].season-active:before{
+  opacity:.58;background:
+   radial-gradient(circle at 12% 18%,#bd6038 0 3px,transparent 4px),
+   radial-gradient(circle at 57% 43%,#d99a3d 0 3px,transparent 4px),
+   radial-gradient(circle at 84% 72%,#a84a32 0 3px,transparent 4px),
+   radial-gradient(ellipse at 50% 100%,#d99b4b55,transparent 55%);
+  background-size:103px 119px,127px 109px,149px 137px,auto;
+  animation:season-leaf-drift 19s linear infinite;
+ }
+ .map[data-season="秋"].season-active:after{opacity:.28;background:linear-gradient(135deg,#c4773c,#e8c16c 48%,#a84a32)}
+ .map[data-season="冬"].season-active:before{
+  opacity:.68;background:
+   radial-gradient(circle at 12% 16%,#fff 0 1.5px,transparent 2.5px),
+   radial-gradient(circle at 65% 37%,#fff 0 2px,transparent 3px),
+   radial-gradient(circle at 38% 76%,#fff 0 1px,transparent 2px),
+   radial-gradient(ellipse at 50% 0%,#c9e0ec88,transparent 55%);
+  background-size:61px 73px,97px 89px,127px 113px,auto;
+  animation:season-snow-fall 12s linear infinite;
+ }
+ .map[data-season="冬"].season-active:after{opacity:.3;background:linear-gradient(145deg,#d5e6ee,#eaf0e9 52%,#c1d8e5)}
+ .map .prefecture.winter-snow path,.map .prefecture.winter-snow polygon{
+  fill:color-mix(in srgb,var(--faction-fill,#d8c9a9) 70%,#f7fbff 30%)!important;
+  stroke:#f8fbff!important;stroke-opacity:.82!important;
+ }
+ .map .prefecture.winter-mountain path,.map .prefecture.winter-mountain polygon{
+  filter:drop-shadow(0 0 1px #f7fbff99);
+ }
+ @keyframes season-petal-drift{from{background-position:0 -40px,0 0,0 -20px,20px -50px,-10px -70px}to{background-position:0 80px,0 0,90px 150px,-70px 120px,80px 90px}}
+ @keyframes season-leaf-drift{from{background-position:0 -50px,10px -30px,-20px -80px,0 0}to{background-position:50px 120px,-40px 140px,70px 110px,0 0}}
+ @keyframes season-snow-fall{from{background-position:0 -80px,20px -100px,-30px -60px,0 0}to{background-position:35px 100px,-25px 130px,20px 120px,0 0}}
+ @keyframes summer-glow{from{opacity:.16}to{opacity:.34}}
+ @media(prefers-reduced-motion:reduce){.map:before,.map:after{animation:none!important;transition:none!important}}
+ @media(max-width:560px){.map:before,.map:after{opacity:.75}}
+ `;
+ document.head.append(finalScrollStyle);
+ const chronicleDialog=document.querySelector("#yearly-overlay .yearly-dialog");
+ if(chronicleDialog&&!chronicleDialog.querySelector(".scroll-cord")){
+  const cord=document.createElement("span");cord.className="scroll-cord";cord.setAttribute("aria-hidden","true");chronicleDialog.append(cord);
+ }
+
 })();

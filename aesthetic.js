@@ -102,4 +102,25 @@
  closeWithScroll("begin","intro");
  addMapDecor();applySeason();
  if(typeof baseRender==="function")window.render();
+
+ const scrollFinish=document.createElement("style");
+ scrollFinish.textContent=`
+ .yearly-dialog,#intro>.dialog{position:relative;isolation:isolate;width:min(720px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow-y:auto;overscroll-behavior:contain;padding:22px 30px 30px;border:1px solid #a98b5c;border-top:0;border-bottom:5px solid #a98b5c;border-radius:2px;background:repeating-linear-gradient(0deg,#80633a0a 0 1px,transparent 1px 5px),linear-gradient(90deg,#e7d7b5,#f8efd9 4%,#f3e8cc 50%,#f8efd9 96%,#e5d2ad);box-shadow:inset 0 0 0 4px #fff8e5a0,inset 0 0 26px #8b6b3b20,0 18px 44px #1c140c66;scrollbar-color:#b59a6b #eadfc7}
+ .yearly-dialog:before,#intro>.dialog:before{content:"";position:sticky;top:0;z-index:4;display:block;height:23px;margin:-13px -18px 20px;border:1px solid #542b20;border-radius:12px;background:radial-gradient(ellipse at 2.5% 50%,#e7c986 0 2px,#7b3929 3px 7px,transparent 8px),radial-gradient(ellipse at 97.5% 50%,#e7c986 0 2px,#7b3929 3px 7px,transparent 8px),linear-gradient(180deg,#d28b58,#9c4b32 18%,#6e2c23 48%,#3d1e19 53%,#8b3b2a 82%,#c17b4b);box-shadow:inset 0 2px 2px #ffe5ae88,inset 0 -3px 4px #1b0d0b99,0 4px 8px #38221655}
+ .yearly-dialog:after,#intro>.dialog:after{content:"";position:absolute;z-index:-1;left:7px;right:7px;top:30px;bottom:7px;border:1px solid #b99c6c66;pointer-events:none}
+ .overlay:not(.hidden) .yearly-dialog,#intro:not(.hidden)>.dialog{animation:scroll-panel-open .58s cubic-bezier(.18,.72,.22,1) both;transform-origin:top center}
+ .overlay.leaving .yearly-dialog,#intro.leaving>.dialog{animation:scroll-panel-close .34s ease-in both;transform-origin:top center}
+ @keyframes scroll-panel-open{0%{opacity:0;transform:translateY(-8px) scaleY(.78)}72%{opacity:1;transform:translateY(1px) scaleY(1.012)}100%{opacity:1;transform:translateY(0) scaleY(1)}}
+ @keyframes scroll-panel-close{0%{opacity:1;transform:translateY(0) scaleY(1)}100%{opacity:0;transform:translateY(-4px) scaleY(.88)}}
+ .conquest-left-roll,.conquest-right-roll{width:34px;border:1px solid #4c241c;border-radius:17px;background:radial-gradient(ellipse at 50% 5%,#f0c98588 0 2px,transparent 3px),radial-gradient(ellipse at 50% 95%,#160b0a99 0 3px,transparent 4px),linear-gradient(90deg,#271411,#633023 12%,#a64c32 27%,#c17a4c 43%,#7b3025 57%,#a34a30 73%,#54241e 89%,#211210);box-shadow:inset 3px 0 4px #f3ca8755,inset -4px 0 7px #160a0a99,0 5px 12px #0007}
+ .conquest-left-roll:before,.conquest-right-roll:before{left:3px;right:3px;top:8px;bottom:8px;border-top:2px solid #e2c17d;border-bottom:2px solid #e2c17d;box-shadow:0 1px 0 #fff0c477,inset 0 1px 0 #fff0c477}
+ .conquest-left-roll:after,.conquest-right-roll:after{width:18px;height:18px;border:2px solid #d8b66e;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#f1d99d 0 2px,#9a5935 3px 5px,#4a211b 6px 100%);box-shadow:0 0 0 2px #52271e,0 0 0 3px #c59c59,0 2px 5px #180d0d99}
+ .conquest-tassel{right:8px;top:39%;width:3px;height:65px;border-radius:2px;background:repeating-linear-gradient(180deg,#e0bd78 0 5px,#8b3025 5px 9px,#4a201b 9px 12px);transform:rotate(-3deg);transform-origin:top center;box-shadow:1px 2px 3px #0007}
+ .conquest-tassel:before{content:"";position:absolute;left:-5px;top:-5px;width:11px;height:9px;border:1px solid #e1bd76;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e8c984,#813326 65%,#351815);box-shadow:0 1px 3px #0008}
+ .conquest-tassel:after{top:58px;left:-7px;width:17px;height:24px;background:repeating-linear-gradient(90deg,#76251f 0 2px,#d5aa61 2px 3px,#9b3928 3px 5px);clip-path:polygon(8% 0,92% 0,100% 100%,72% 76%,51% 100%,28% 76%,0 100%)}
+ @media(max-width:560px){.yearly-dialog,#intro>.dialog{width:calc(100vw - 20px);max-height:calc(100dvh - 24px);padding:18px 19px 23px}.yearly-dialog:before,#intro>.dialog:before{margin:-10px -10px 17px;height:20px}.conquest-left-roll,.conquest-right-roll{width:30px}.conquest-left-roll:after,.conquest-right-roll:after{width:15px;height:15px}.conquest-tassel{right:6px}}
+ @media(prefers-reduced-motion:reduce){.overlay:not(.hidden) .yearly-dialog,#intro:not(.hidden)>.dialog,.overlay.leaving .yearly-dialog,#intro.leaving>.dialog{animation:none!important}}
+ `;
+ document.head.append(scrollFinish);
+
 })();

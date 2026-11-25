@@ -123,4 +123,72 @@
  `;
  document.head.append(scrollFinish);
 
+
+ /* 巻物パネルの再調整：横長カード感をなくし、上部に一本の巻軸を明確に配置 */
+ const scrollCorrection=document.createElement("style");
+ scrollCorrection.textContent=`
+ #yearly-overlay .yearly-dialog,
+ #intro>.dialog{
+   width:min(620px,calc(100vw - 28px))!important;
+   height:min(88dvh,900px)!important;
+   max-height:calc(100dvh - 28px)!important;
+   overflow-y:auto!important;
+   overflow-x:hidden!important;
+   position:relative!important;
+   padding:42px 28px 28px!important;
+   border:1px solid #a98a59!important;
+   border-top:0!important;
+   border-bottom:5px solid #a98a59!important;
+   border-radius:2px!important;
+   background:
+     repeating-linear-gradient(0deg,#80633a0a 0 1px,transparent 1px 5px),
+     linear-gradient(90deg,#e5d2ac 0%,#f8efd9 5%,#f2e6ca 50%,#f8efd9 95%,#e4d0a8 100%)!important;
+   box-shadow:inset 0 0 0 4px #fff8e5a0,inset 0 0 25px #8b6b3b20,0 16px 40px #1c140c66!important;
+ }
+ #yearly-overlay .yearly-dialog:before,
+ #intro>.dialog:before{
+   content:""!important;
+   position:sticky!important;
+   display:block!important;
+   top:0!important;
+   z-index:10!important;
+   height:25px!important;
+   margin:-42px -28px 24px!important;
+   border:1px solid #4c241d!important;
+   border-radius:13px!important;
+   background:
+    radial-gradient(ellipse at 2% 50%,#f0d28e 0 2px,#713025 3px 7px,transparent 8px),
+    radial-gradient(ellipse at 98% 50%,#f0d28e 0 2px,#713025 3px 7px,transparent 8px),
+    linear-gradient(180deg,#d49a61 0%,#a34d35 20%,#6c2d25 48%,#3c1c19 54%,#8a3b2c 82%,#c27c4b 100%)!important;
+   box-shadow:inset 0 2px 2px #ffe8b588,inset 0 -3px 4px #1b0d0b99,0 4px 8px #38221666!important;
+ }
+ #yearly-overlay .yearly-dialog:after,
+ #intro>.dialog:after{
+   content:""!important;position:absolute!important;pointer-events:none!important;
+   z-index:0!important;left:8px!important;right:8px!important;top:34px!important;bottom:8px!important;
+   border:1px solid #b99c6c66!important;
+ }
+ #yearly-overlay .yearly-dialog>*,
+ #intro>.dialog>*{position:relative;z-index:1}
+ /* 巻物の開閉は控えめに。本文を大きく伸縮させない */
+ #yearly-overlay:not(.hidden) .yearly-dialog,
+ #intro:not(.hidden)>.dialog{animation:scroll-gentle-in .2s ease-out both!important}
+ #yearly-overlay.leaving .yearly-dialog,
+ #intro.leaving>.dialog{animation:scroll-gentle-out .16s ease-in both!important}
+ @keyframes scroll-gentle-in{from{opacity:.75;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+ @keyframes scroll-gentle-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-2px)}}
+ @media(max-width:560px){
+  #yearly-overlay .yearly-dialog,#intro>.dialog{
+   width:calc(100vw - 20px)!important;height:min(88dvh,900px)!important;
+   max-height:calc(100dvh - 20px)!important;padding:35px 19px 23px!important;
+  }
+  #yearly-overlay .yearly-dialog:before,#intro>.dialog:before{margin:-35px -19px 20px!important;height:22px!important}
+ }
+ @media(prefers-reduced-motion:reduce){
+  #yearly-overlay:not(.hidden) .yearly-dialog,#intro:not(.hidden)>.dialog,
+  #yearly-overlay.leaving .yearly-dialog,#intro.leaving>.dialog{animation:none!important}
+ }
+ `;
+ document.head.append(scrollCorrection);
+
 })();

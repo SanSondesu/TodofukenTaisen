@@ -308,4 +308,24 @@
   const cord=document.createElement("span");cord.className="scroll-cord";cord.setAttribute("aria-hidden","true");chronicleDialog.append(cord);
  }
 
+
+ /* 海面：添付された2枚目の青緑色の青海波を基調にした和紙テクスチャ */
+ const seaTextureStyle=document.createElement("style");
+ seaTextureStyle.textContent=`
+ .map{
+  background-color:#4b9bad!important;
+  background-image:url("./assets/sea-seigaiha.svg")!important;
+  background-position:center center!important;
+  background-size:480px 340px!important;
+  background-repeat:repeat!important;
+ }
+ .map svg{background:transparent!important}
+ /* 季節の色は海模様を消さず、海面全体に薄く重ねる */
+ .map[data-season="春"]{background-color:#579eaa!important}
+ .map[data-season="夏"]{background-color:#398fa8!important}
+ .map[data-season="秋"]{background-color:#568f9a!important}
+ .map[data-season="冬"]{background-color:#739eae!important}
+ `;
+ document.head.append(seaTextureStyle);
+
 })();

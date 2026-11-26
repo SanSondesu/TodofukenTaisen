@@ -33,31 +33,46 @@
  function addSeasonalFalling(map,season){
   let layer=map.querySelector(".seasonal-falling");
   if(!layer){layer=document.createElement("div");layer.className="seasonal-falling";layer.setAttribute("aria-hidden","true");map.append(layer);}
-  const motifs={"春":{cls:"petal",count:6,colors:["#f5aebd","#f8c2cc","#ee9eaf"]},"秋":{cls:"maple",count:4,colors:["#c84e32","#df7835","#b93d32"]},"冬":{cls:"snow",count:5,colors:["#ffffff","#f3f8ff","#e4f0f7"]}};
-  const cfg=motifs[season];
-  if(!cfg){layer.replaceChildren();layer.dataset.season=season;return;}
-  if(layer.dataset.season===season&&layer.childElementCount===(season==="秋"?7:cfg.count))return;
+  const motifs={
+   "春":[
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:9,h:13},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:10,h:14},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:8,h:12},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:9,h:13}
+   ],
+   "夏":[],
+   "秋":[
+    {cls:"maple",asset:"./assets/maple-leaf.webp",w:22,h:22},
+    {cls:"maple",asset:"./assets/maple-leaf.webp",w:21,h:20},
+    {cls:"maple",asset:"./assets/maple-leaf.webp",w:23,h:22},
+    {cls:"ginkgo",asset:"./assets/ginkgo-leaf.webp",w:22,h:14},
+    {cls:"ginkgo",asset:"./assets/ginkgo-leaf.webp",w:20,h:12}
+   ],
+   "冬":[
+    {cls:"snow",color:"#ffffff"},{cls:"snow",color:"#f3f8ff"},
+    {cls:"snow",color:"#e4f0f7"},{cls:"snow",color:"#ffffff"}
+   ]
+  };
+  const pieces=motifs[season]||[];
+  if(layer.dataset.season===season&&layer.childElementCount===pieces.length)return;
   layer.replaceChildren();
-  const positions=[[9,12],[27,62],[46,25],[64,78],[81,38],[93,14]];
-  for(let i=0;i<cfg.count;i++){
-   const item=document.createElement("i");item.className="seasonal-piece "+cfg.cls;
-   item.style.left=positions[i][0]+"%";item.style.top=positions[i][1]+"%";
-   item.style.setProperty("--piece-delay",(-i*1.7)+"s");
-   item.style.setProperty("--piece-duration",(9+(i%3)*2)+"s");
-   item.style.setProperty("--piece-color",cfg.colors[i%cfg.colors.length]);
-   item.style.setProperty("--piece-tilt",(i%2?24:-31)+"deg");layer.append(item);
-  }
-  if(season==="秋"){
-   const colors=["#e9b72f","#f2c84e","#dca51f"];
-   [[18,42],[57,8],[88,67]].forEach((pos,i)=>{
-    const item=document.createElement("i");item.className="seasonal-piece ginkgo";
-    item.style.left=pos[0]+"%";item.style.top=pos[1]+"%";
-    item.style.setProperty("--piece-delay",(-i*2.3-1)+"s");
-    item.style.setProperty("--piece-duration",(10+i*1.5)+"s");
-    item.style.setProperty("--piece-color",colors[i]);
-    item.style.setProperty("--piece-tilt",(i*35-30)+"deg");layer.append(item);
-   });
-  }
+  const positions=[[12,18],[34,65],[57,28],[78,72],[91,42]];
+  pieces.forEach((cfg,i)=>{
+   const item=document.createElement("i");
+   item.className="seasonal-piece "+cfg.cls;
+   item.style.left=positions[i][0]+"%";
+   item.style.top=positions[i][1]+"%";
+   item.style.setProperty("--piece-delay",(-i*2.1)+"s");
+   item.style.setProperty("--piece-duration",(13+(i%3)*2)+"s");
+   item.style.setProperty("--piece-tilt",(i%2?18:-22)+"deg");
+   if(cfg.asset){
+    item.style.width=cfg.w+"px";item.style.height=cfg.h+"px";
+    item.style.backgroundImage='url("'+cfg.asset+'")';
+   }else{
+    item.style.setProperty("--piece-color",cfg.color);
+   }
+   layer.append(item);
+  });
   layer.dataset.season=season;
  }
  function addMapDecor(){
@@ -281,12 +296,10 @@
  /* Four-season map atmosphere; overlays never intercept map input */
  .map{isolation:isolate} 
  .seasonal-falling{position:absolute;inset:0;z-index:4;overflow:hidden;pointer-events:none}
- .seasonal-piece{position:absolute;display:block;opacity:.88;animation:season-piece-fall var(--piece-duration) ease-in-out var(--piece-delay) infinite alternate;filter:drop-shadow(0 1px 1px #42372b33)}
- .seasonal-piece.petal{width:11px;height:18px;background:radial-gradient(ellipse at 35% 25%,#fff0f2 0%,var(--piece-color) 48%,#d97e92 100%);border-radius:72% 18% 68% 24%;clip-path:polygon(50% 0,78% 8%,100% 38%,84% 72%,50% 100%,16% 72%,0 38%,22% 8%)}
- .seasonal-piece.maple{width:22px;height:22px;background:var(--piece-color);clip-path:polygon(48% 0,58% 25%,84% 8%,78% 36%,100% 43%,74% 55%,87% 82%,60% 72%,49% 100%,39% 72%,12% 88%,24% 58%,0 44%,29% 35%,19% 10%,43% 26%)}
- .seasonal-piece.ginkgo{width:22px;height:18px;background:var(--piece-color);clip-path:polygon(50% 100%,44% 80%,12% 72%,0 43%,6% 20%,25% 5%,48% 18%,52% 0,59% 19%,82% 5%,98% 25%,100% 49%,84% 72%,57% 82%)}
- .seasonal-piece.snow{width:4px;height:4px;border-radius:50%;background:var(--piece-color);opacity:.8;filter:drop-shadow(0 0 2px #fff)}
- @keyframes season-piece-fall{0%{transform:translate3d(-8px,-12px,0) rotate(var(--piece-tilt));opacity:.35}50%{opacity:.92}100%{transform:translate3d(18px,44px,0) rotate(calc(var(--piece-tilt) + 100deg));opacity:.55}}
+ .seasonal-piece{position:absolute;display:block;opacity:.78;animation:season-piece-fall var(--piece-duration) ease-in-out var(--piece-delay) infinite alternate;filter:drop-shadow(0 1px 1px #42372b22);background-repeat:no-repeat;background-position:center;background-size:contain}
+ .seasonal-piece.petal,.seasonal-piece.maple,.seasonal-piece.ginkgo{background-color:transparent!important;clip-path:none!important;border:0}
+ .seasonal-piece.snow{width:3px;height:3px;border-radius:50%;background:var(--piece-color);opacity:.7;filter:drop-shadow(0 0 1px #fff)}
+ @keyframes season-piece-fall{0%{transform:translate3d(-4px,-7px,0) rotate(var(--piece-tilt));opacity:.55}50%{opacity:.82}100%{transform:translate3d(10px,25px,0) rotate(calc(var(--piece-tilt) + 38deg));opacity:.62}}
  @media(prefers-reduced-motion:reduce){.seasonal-piece{animation:none!important;opacity:.7}}
 
  .map:before,.map:after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity 1.1s ease}

@@ -35,9 +35,9 @@
   if(!layer){layer=document.createElement("div");layer.className="seasonal-falling";layer.setAttribute("aria-hidden","true");map.append(layer);}
   const motifs={
    "春":[
-    {cls:"petal",asset:"./assets/sakura-petal.webp",w:9,h:13},
-    {cls:"petal",asset:"./assets/sakura-petal.webp",w:10,h:14},
-    {cls:"petal",asset:"./assets/sakura-petal.webp",w:8,h:12},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:12,h:17},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:13,h:18},
+    {cls:"petal",asset:"./assets/sakura-petal.webp",w:11,h:16},
     {cls:"petal",asset:"./assets/sakura-petal.webp",w:9,h:13}
    ],
    "夏":[],

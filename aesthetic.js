@@ -314,7 +314,7 @@
  seaTextureStyle.textContent=`
  .map{
   background-color:#4b9bad!important;
-  background-image:url("./assets/sea-seigaiha.svg")!important;
+  background-image:url("./assets/IMG_1999.webp")!important;
   background-position:center center!important;
   background-size:480px 340px!important;
   background-repeat:repeat!important;

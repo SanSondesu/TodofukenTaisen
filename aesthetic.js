@@ -25,8 +25,40 @@
  function applySeason(){
   const season=SEASONS[state.seasonIndex]||"春";
   document.body.dataset.season=season;
+  const map=$("map");
+  if(map){map.dataset.season=season;addSeasonalFalling(map,season);}
   const label=$("season-ornament");
   if(label)label.textContent=({春:"花霞",夏:"青嵐",秋:"錦秋",冬:"雪景"})[season];
+ }
+ function addSeasonalFalling(map,season){
+  let layer=map.querySelector(".seasonal-falling");
+  if(!layer){layer=document.createElement("div");layer.className="seasonal-falling";layer.setAttribute("aria-hidden","true");map.append(layer);}
+  const motifs={"春":{cls:"petal",count:6,colors:["#f5aebd","#f8c2cc","#ee9eaf"]},"秋":{cls:"maple",count:4,colors:["#c84e32","#df7835","#b93d32"]},"冬":{cls:"snow",count:5,colors:["#ffffff","#f3f8ff","#e4f0f7"]}};
+  const cfg=motifs[season];
+  if(!cfg){layer.replaceChildren();layer.dataset.season=season;return;}
+  if(layer.dataset.season===season&&layer.childElementCount===(season==="秋"?7:cfg.count))return;
+  layer.replaceChildren();
+  const positions=[[9,12],[27,62],[46,25],[64,78],[81,38],[93,14]];
+  for(let i=0;i<cfg.count;i++){
+   const item=document.createElement("i");item.className="seasonal-piece "+cfg.cls;
+   item.style.left=positions[i][0]+"%";item.style.top=positions[i][1]+"%";
+   item.style.setProperty("--piece-delay",(-i*1.7)+"s");
+   item.style.setProperty("--piece-duration",(9+(i%3)*2)+"s");
+   item.style.setProperty("--piece-color",cfg.colors[i%cfg.colors.length]);
+   item.style.setProperty("--piece-tilt",(i%2?24:-31)+"deg");layer.append(item);
+  }
+  if(season==="秋"){
+   const colors=["#e9b72f","#f2c84e","#dca51f"];
+   [[18,42],[57,8],[88,67]].forEach((pos,i)=>{
+    const item=document.createElement("i");item.className="seasonal-piece ginkgo";
+    item.style.left=pos[0]+"%";item.style.top=pos[1]+"%";
+    item.style.setProperty("--piece-delay",(-i*2.3-1)+"s");
+    item.style.setProperty("--piece-duration",(10+i*1.5)+"s");
+    item.style.setProperty("--piece-color",colors[i]);
+    item.style.setProperty("--piece-tilt",(i*35-30)+"deg");layer.append(item);
+   });
+  }
+  layer.dataset.season=season;
  }
  function addMapDecor(){
   const map=$("map");if(!map)return;
@@ -247,40 +279,28 @@
  }
  @media(prefers-reduced-motion:reduce){#yearly-overlay:not(.hidden) .yearly-dialog,#yearly-overlay.leaving .yearly-dialog{animation:none!important}}
  /* Four-season map atmosphere; overlays never intercept map input */
- .map{isolation:isolate}
+ .map{isolation:isolate} 
+ .seasonal-falling{position:absolute;inset:0;z-index:4;overflow:hidden;pointer-events:none}
+ .seasonal-piece{position:absolute;display:block;opacity:.88;animation:season-piece-fall var(--piece-duration) ease-in-out var(--piece-delay) infinite alternate;filter:drop-shadow(0 1px 1px #42372b33)}
+ .seasonal-piece.petal{width:11px;height:18px;background:radial-gradient(ellipse at 35% 25%,#fff0f2 0%,var(--piece-color) 48%,#d97e92 100%);border-radius:72% 18% 68% 24%;clip-path:polygon(50% 0,78% 8%,100% 38%,84% 72%,50% 100%,16% 72%,0 38%,22% 8%)}
+ .seasonal-piece.maple{width:22px;height:22px;background:var(--piece-color);clip-path:polygon(48% 0,58% 25%,84% 8%,78% 36%,100% 43%,74% 55%,87% 82%,60% 72%,49% 100%,39% 72%,12% 88%,24% 58%,0 44%,29% 35%,19% 10%,43% 26%)}
+ .seasonal-piece.ginkgo{width:22px;height:18px;background:var(--piece-color);clip-path:polygon(50% 100%,44% 80%,12% 72%,0 43%,6% 20%,25% 5%,48% 18%,52% 0,59% 19%,82% 5%,98% 25%,100% 49%,84% 72%,57% 82%)}
+ .seasonal-piece.snow{width:4px;height:4px;border-radius:50%;background:var(--piece-color);opacity:.8;filter:drop-shadow(0 0 2px #fff)}
+ @keyframes season-piece-fall{0%{transform:translate3d(-8px,-12px,0) rotate(var(--piece-tilt));opacity:.35}50%{opacity:.92}100%{transform:translate3d(18px,44px,0) rotate(calc(var(--piece-tilt) + 100deg));opacity:.55}}
+ @media(prefers-reduced-motion:reduce){.seasonal-piece{animation:none!important;opacity:.7}}
+
  .map:before,.map:after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity 1.1s ease}
  .map:before{mix-blend-mode:screen}
  .map:after{mix-blend-mode:multiply}
- .map[data-season="春"].season-active:before{
-  opacity:.72;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='124' viewBox='0 0 132 124'%3E%3Cg fill='%23f5b5c8' fill-opacity='.9' stroke='%23fff0f2' stroke-opacity='.55' stroke-width='1'%3E%3Cellipse cx='28' cy='27' rx='4' ry='7' transform='rotate(-28 28 27)'/%3E%3Cellipse cx='36' cy='31' rx='4' ry='7' transform='rotate(42 36 31)'/%3E%3Cellipse cx='31' cy='39' rx='4' ry='7' transform='rotate(155 31 39)'/%3E%3Cellipse cx='21' cy='36' rx='4' ry='7' transform='rotate(225 21 36)'/%3E%3Cellipse cx='20' cy='27' rx='4' ry='7' transform='rotate(300 20 27)'/%3E%3Ccircle cx='28' cy='33' r='2' fill='%23f3d68d'/%3E%3Cellipse cx='91' cy='86' rx='3.5' ry='6' transform='rotate(25 91 86)'/%3E%3Cellipse cx='99' cy='91' rx='3.5' ry='6' transform='rotate(95 99 91)'/%3E%3Cellipse cx='91' cy='98' rx='3.5' ry='6' transform='rotate(175 91 98)'/%3E%3Cellipse cx='83' cy='91' rx='3.5' ry='6' transform='rotate(250 83 91)'/%3E%3Cellipse cx='85' cy='83' rx='3.5' ry='6' transform='rotate(320 85 83)'/%3E%3Ccircle cx='91' cy='91' r='1.8' fill='%23f3d68d'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:132px 124px;
-  animation:season-petal-drift 18s linear infinite;
- }
+ .map[data-season="春"].season-active:before{opacity:0!important;background:none!important;animation:none!important}
  .map[data-season="春"].season-active:after{opacity:.22;background:linear-gradient(135deg,#f5c9d1,#fff0d8 45%,#a9c78c)}
  .map[data-season="夏"].season-active:before{
   opacity:0!important;background:none!important;animation:none!important;
  }
  .map[data-season="夏"].season-active:after{opacity:.24;background:linear-gradient(145deg,#8dc7d0,#fff3bd 48%,#559b6b);animation:summer-glow 8s ease-in-out infinite alternate}
- .map[data-season="秋"].season-active:before{
-  opacity:.72;
-  background-image:
-   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='148' height='136' viewBox='0 0 148 136'%3E%3Cg fill='%23c65c35' fill-opacity='.9' stroke='%23f2bd79' stroke-opacity='.55' stroke-width='1'%3E%3Cpath d='M28 18l5 8 8-5-2 10 9 3-9 5 2 10-9-5-7 8-1-11-10-3 9-6-2-10 8 5z'/%3E%3Cpath d='M105 82l4 7 8-4-2 9 8 3-8 5 1 9-8-5-6 7-1-9-9-3 8-5-1-9 7 4z' fill='%23b64a30'/%3E%3C/g%3E%3C/svg%3E"),
-   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='148' height='136' viewBox='0 0 148 136'%3E%3Cg fill='%23e4b94f' fill-opacity='.92' stroke='%23f8e2a1' stroke-opacity='.5' stroke-width='1'%3E%3Cpath d='M28 26Q17 17 13 28Q12 38 27 43Q21 55 31 59Q42 56 37 44Q52 39 47 29Q42 20 34 27Q33 17 28 26Z'/%3E%3Cpath d='M100 88Q88 78 84 89Q83 100 98 104Q92 117 102 121Q113 117 108 105Q123 100 118 90Q113 81 105 88Q104 78 100 88Z'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:148px 136px,148px 136px;
-  background-position:0 -30px,60px -80px;
-  animation:season-leaf-drift 20s linear infinite;
- }
+ .map[data-season="秋"].season-active:before{opacity:0!important;background:none!important;animation:none!important}
  .map[data-season="秋"].season-active:after{opacity:.28;background:linear-gradient(135deg,#c4773c,#e8c16c 48%,#a84a32)}
- .map[data-season="冬"].season-active:before{
-  opacity:.68;background:
-   radial-gradient(circle at 12% 16%,#fff 0 1.5px,transparent 2.5px),
-   radial-gradient(circle at 65% 37%,#fff 0 2px,transparent 3px),
-   radial-gradient(circle at 38% 76%,#fff 0 1px,transparent 2px),
-   radial-gradient(ellipse at 50% 0%,#c9e0ec88,transparent 55%);
-  background-size:61px 73px,97px 89px,127px 113px,auto;
-  animation:season-snow-fall 12s linear infinite;
- }
+ .map[data-season="冬"].season-active:before{opacity:0!important;background:none!important;animation:none!important}
  .map[data-season="冬"].season-active:after{opacity:.3;background:linear-gradient(145deg,#d5e6ee,#eaf0e9 52%,#c1d8e5)}
  .map .prefecture.winter-snow path,.map .prefecture.winter-snow polygon{
   fill:color-mix(in srgb,var(--faction-fill,#d8c9a9) 70%,#f7fbff 30%)!important;

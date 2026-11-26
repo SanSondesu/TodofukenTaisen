@@ -223,19 +223,19 @@
  }
  #yearly-overlay .yearly-dialog>*{position:relative;z-index:1}
  #yearly-overlay .yearly-dialog .scroll-cord{
-  position:absolute;z-index:9;right:31px;top:8px;width:3px;height:42px;
-  border-radius:2px;background:linear-gradient(90deg,#261a14,#b28b4d 48%,#342017);
-  box-shadow:1px 2px 3px #0006;pointer-events:none;
+  position:absolute;z-index:9;right:35px;top:12px;width:1px;height:25px;
+  border-radius:1px;background:#493026;opacity:.82;
+  box-shadow:1px 0 0 #d5b77d;pointer-events:none;
  }
  #yearly-overlay .yearly-dialog .scroll-cord:before{
-  content:"";position:absolute;left:-9px;top:-3px;width:19px;height:13px;
-  border:2px solid #9d7946;border-radius:50% 50% 45% 45%;
-  background:linear-gradient(180deg,#8e3d2c,#4a211c);box-shadow:0 1px 3px #0007;
+  content:"";position:absolute;left:-3px;top:-1px;width:6px;height:6px;
+  border:1px solid #9a7444;border-radius:50%;background:#6f3529;
+  box-shadow:0 0 0 1px #e0c58c66;
  }
  #yearly-overlay .yearly-dialog .scroll-cord:after{
-  content:"";position:absolute;left:-6px;bottom:-12px;width:15px;height:18px;
-  background:repeating-linear-gradient(90deg,#6e2820 0 2px,#d2ad6a 2px 3px,#8b3327 3px 5px);
-  clip-path:polygon(8% 0,92% 0,100% 100%,70% 76%,50% 100%,30% 76%,0 100%);
+  content:"";position:absolute;left:-2px;bottom:-4px;width:4px;height:5px;
+  background:#704034;border-radius:0 0 2px 2px;
+  box-shadow:1px 0 0 #c3a16c;
  }
  #yearly-overlay:not(.hidden) .yearly-dialog{animation:chronicle-gentle-open .18s ease-out both!important;transform-origin:top center}
  #yearly-overlay.leaving .yearly-dialog{animation:chronicle-gentle-close .15s ease-in both!important;transform-origin:top center}
@@ -252,30 +252,24 @@
  .map:before{mix-blend-mode:screen}
  .map:after{mix-blend-mode:multiply}
  .map[data-season="春"].season-active:before{
-  opacity:.62;background:
-   radial-gradient(ellipse at 12% 18%,#f7b9c866,transparent 33%),
-   radial-gradient(ellipse at 78% 78%,#f5c8b655,transparent 36%),
-   radial-gradient(circle at 15% 24%,#f5b4c9 0 2px,transparent 3px),
-   radial-gradient(circle at 63% 33%,#f8c5d5 0 2px,transparent 3px),
-   radial-gradient(circle at 82% 64%,#f5b4c9 0 2px,transparent 3px);
-  background-size:auto,auto,83px 91px,117px 103px,137px 119px;
-  animation:season-petal-drift 16s linear infinite;
+  opacity:.72;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='124' viewBox='0 0 132 124'%3E%3Cg fill='%23f5b5c8' fill-opacity='.9' stroke='%23fff0f2' stroke-opacity='.55' stroke-width='1'%3E%3Cellipse cx='28' cy='27' rx='4' ry='7' transform='rotate(-28 28 27)'/%3E%3Cellipse cx='36' cy='31' rx='4' ry='7' transform='rotate(42 36 31)'/%3E%3Cellipse cx='31' cy='39' rx='4' ry='7' transform='rotate(155 31 39)'/%3E%3Cellipse cx='21' cy='36' rx='4' ry='7' transform='rotate(225 21 36)'/%3E%3Cellipse cx='20' cy='27' rx='4' ry='7' transform='rotate(300 20 27)'/%3E%3Ccircle cx='28' cy='33' r='2' fill='%23f3d68d'/%3E%3Cellipse cx='91' cy='86' rx='3.5' ry='6' transform='rotate(25 91 86)'/%3E%3Cellipse cx='99' cy='91' rx='3.5' ry='6' transform='rotate(95 99 91)'/%3E%3Cellipse cx='91' cy='98' rx='3.5' ry='6' transform='rotate(175 91 98)'/%3E%3Cellipse cx='83' cy='91' rx='3.5' ry='6' transform='rotate(250 83 91)'/%3E%3Cellipse cx='85' cy='83' rx='3.5' ry='6' transform='rotate(320 85 83)'/%3E%3Ccircle cx='91' cy='91' r='1.8' fill='%23f3d68d'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:132px 124px;
+  animation:season-petal-drift 18s linear infinite;
  }
  .map[data-season="春"].season-active:after{opacity:.22;background:linear-gradient(135deg,#f5c9d1,#fff0d8 45%,#a9c78c)}
  .map[data-season="夏"].season-active:before{
-  opacity:.5;background:
-   radial-gradient(ellipse at 78% 8%,#fff4bb99,transparent 38%),
-   radial-gradient(ellipse at 25% 90%,#4e9b6940,transparent 45%);
+  opacity:0!important;background:none!important;animation:none!important;
  }
  .map[data-season="夏"].season-active:after{opacity:.24;background:linear-gradient(145deg,#8dc7d0,#fff3bd 48%,#559b6b);animation:summer-glow 8s ease-in-out infinite alternate}
  .map[data-season="秋"].season-active:before{
-  opacity:.58;background:
-   radial-gradient(circle at 12% 18%,#bd6038 0 3px,transparent 4px),
-   radial-gradient(circle at 57% 43%,#d99a3d 0 3px,transparent 4px),
-   radial-gradient(circle at 84% 72%,#a84a32 0 3px,transparent 4px),
-   radial-gradient(ellipse at 50% 100%,#d99b4b55,transparent 55%);
-  background-size:103px 119px,127px 109px,149px 137px,auto;
-  animation:season-leaf-drift 19s linear infinite;
+  opacity:.72;
+  background-image:
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='148' height='136' viewBox='0 0 148 136'%3E%3Cg fill='%23c65c35' fill-opacity='.9' stroke='%23f2bd79' stroke-opacity='.55' stroke-width='1'%3E%3Cpath d='M28 18l5 8 8-5-2 10 9 3-9 5 2 10-9-5-7 8-1-11-10-3 9-6-2-10 8 5z'/%3E%3Cpath d='M105 82l4 7 8-4-2 9 8 3-8 5 1 9-8-5-6 7-1-9-9-3 8-5-1-9 7 4z' fill='%23b64a30'/%3E%3C/g%3E%3C/svg%3E"),
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='148' height='136' viewBox='0 0 148 136'%3E%3Cg fill='%23e4b94f' fill-opacity='.92' stroke='%23f8e2a1' stroke-opacity='.5' stroke-width='1'%3E%3Cpath d='M28 26Q17 17 13 28Q12 38 27 43Q21 55 31 59Q42 56 37 44Q52 39 47 29Q42 20 34 27Q33 17 28 26Z'/%3E%3Cpath d='M100 88Q88 78 84 89Q83 100 98 104Q92 117 102 121Q113 117 108 105Q123 100 118 90Q113 81 105 88Q104 78 100 88Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:148px 136px,148px 136px;
+  background-position:0 -30px,60px -80px;
+  animation:season-leaf-drift 20s linear infinite;
  }
  .map[data-season="秋"].season-active:after{opacity:.28;background:linear-gradient(135deg,#c4773c,#e8c16c 48%,#a84a32)}
  .map[data-season="冬"].season-active:before{

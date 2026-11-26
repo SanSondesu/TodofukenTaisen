@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="340" viewBox="0 0 480 340">
+<defs>
+ <pattern id="seigaiha" width="160" height="170" patternUnits="userSpaceOnUse">
+  <g fill="none" stroke="#b8d8d5" stroke-width="5.2" stroke-linecap="round" opacity=".82">
+   <path d="M-42 82 A82 82 0 0 1 122 82 M-29 82 A69 69 0 0 1 109 82 M-16 82 A56 56 0 0 1 96 82 M-3 82 A43 43 0 0 1 83 82 M10 82 A30 30 0 0 1 70 82"/>
+   <path d="M38 168 A82 82 0 0 1 202 168 M51 168 A69 69 0 0 1 189 168 M64 168 A56 56 0 0 1 176 168 M77 168 A43 43 0 0 1 163 168 M90 168 A30 30 0 0 1 150 168"/>
+   <path d="M118 -3 A82 82 0 0 1 282 -3 M131 -3 A69 69 0 0 1 269 -3 M144 -3 A56 56 0 0 1 256 -3 M157 -3 A43 43 0 0 1 243 -3 M170 -3 A30 30 0 0 1 230 -3"/>
+  </g>
+  <g fill="#b8d8d5" opacity=".7"><circle cx="80" cy="85" r="2.4"/><circle cx="160" cy="0" r="2.4"/><circle cx="0" cy="170" r="2.4"/></g>
+ </pattern>
+ <filter id="paper" x="-10%" y="-10%" width="120%" height="120%">
+  <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="2" seed="11"/>
+  <feColorMatrix values="0 0 0 0 .72 0 0 0 0 .86 0 0 0 0 .86 0 0 0 .12 0"/>
+ </filter>
+</defs>
+<rect width="480" height="340" fill="#4b9bad"/>
+<rect width="480" height="340" fill="url(#seigaiha)"/>
+<rect width="480" height="340" filter="url(#paper)" opacity=".42"/>
+<rect width="480" height="340" fill="none" stroke="#d5e6df" stroke-opacity=".08" stroke-width="2"/>
+</svg>
